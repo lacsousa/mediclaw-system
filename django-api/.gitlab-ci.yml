@@ -1,0 +1,37 @@
+stages: [lint, test]
+
+cache:
+  key:
+    files:
+      - requirements.txt
+  paths:
+    - .cache/pip
+
+variables:
+  SECRET_DETECTION_ENABLED: 'true'
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  DB_NAME: mediclaw
+  DB_USER: postgres
+  DB_PASSWORD: postgres
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  SECRET_KEY: ci-secret-min-50-chars-aaaaaaaaaaaaaaaaaaaaaaaaa
+  DEBUG: "False"
+  ALLOWED_HOSTS: "*"
+
+lint:
+  stage: lint
+  image: python:3.12-slim
+  script:
+    - pip install pre-commit
+    - pre-commit run --all-files
+
+test:
+  stage: test
+  image: python:3.12-slim
+  services:
+    - name: postgres:16-alpine
+      alias: postgres
+  script:
+    - pip install -r requirements.txt
+    - pytest -q --reuse-db

@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+# Executa lint/format sem bloquear commit em caso de erro.
+npx lint-staged || true

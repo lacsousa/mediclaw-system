@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(DJANGO_SETTINGS_MODULE=config.settings .venv/bin/python -m pytest tests/conversations/ -v)",
+      "Bash(DJANGO_SETTINGS_MODULE=config.settings .venv/bin/python -m pytest tests/ -v --tb=no -q)",
+      "Bash(DJANGO_SETTINGS_MODULE=config.settings .venv/bin/python -m pytest tests/ -q --tb=no)"
+    ]
+  }
+}

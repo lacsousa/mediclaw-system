@@ -1,0 +1,19 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ..:/workspaces:cached
+    command: sleep infinity
+    ports:
+      - "3000:3000"
+    networks:
+      shared-dev-network:
+        aliases:
+          - react-painel
+
+networks:
+  shared-dev-network:
+    name: mediclaw-dev-network
+    external: true

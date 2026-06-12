@@ -1,0 +1,55 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ..:/workspaces:cached
+      - ~/.ssh:/home/vscode/.ssh:ro
+    command: sleep infinity
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: mediclaw
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      SECRET_KEY: django-insecure-devcontainer
+      DEBUG: "True"
+      ALLOWED_HOSTS: localhost,127.0.0.1,0.0.0.0
+    networks:
+      shared-dev-network:
+        aliases:
+          - django-api
+
+  # No host (ex.: macOS): localhost:25432 — postgres/postgres/mediclaw. Na rede Docker: host postgres, porta 5432.
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: medi_postgres
+    ports:
+      - "127.0.0.1:25432:5432"
+    environment:
+      POSTGRES_DB: mediclaw
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shared-dev-network
+
+volumes:
+  pgdata:
+
+networks:
+  shared-dev-network:
+    name: mediclaw-dev-network
+    external: true
