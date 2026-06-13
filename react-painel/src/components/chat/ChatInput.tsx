@@ -1,12 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Box, Button, Flex, Stack, Text, Textarea } from "@chakra-ui/react";
+import { Box, Flex, Stack, Text, Textarea } from "@chakra-ui/react";
 import { openStream } from "@/lib/sse";
 import { useToast } from "@/context/ToastContext";
 import type { Citation } from "@/types/api";
 import { SourceAttribution } from "./SourceAttribution";
 import { MessageContent } from "./MessageContent";
+
+function IconSend() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
+  );
+}
 
 interface ChatInputProps {
   conversationId: number;
@@ -111,7 +120,7 @@ export function ChatInput({
               >
                 <MessageContent content={partialReply} variant="assistant" streaming />
               </Box>
-              <Text fontSize="xs" color="fg.muted" mt={1}>
+              <Text fontSize="10px" color="fg.muted" mt={1} style={{ opacity: 0.7 }}>
                 ℹ Esta orientação é educativa e não substitui um profissional de saúde.
               </Text>
               <SourceAttribution citations={citations} />
@@ -148,15 +157,30 @@ export function ChatInput({
               }
             }}
           />
-          <Button
+          <Box
+            as="button"
             type="submit"
-            colorPalette="teal"
-            borderRadius="lg"
+            aria-label="Enviar mensagem"
+            title="Enviar"
+            style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "50%",
+              background: !input.trim() || isStreaming ? "#9FE1CB" : "#0F6E56",
+              color: "#ffffff",
+              border: "none",
+              cursor: !input.trim() || isStreaming ? "not-allowed" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              marginBottom: "2px",
+              transition: "background 0.15s",
+            }}
             disabled={isStreaming || !input.trim()}
-            alignSelf="flex-end"
           >
-            Enviar
-          </Button>
+            <IconSend />
+          </Box>
         </Flex>
       </form>
     </Box>
