@@ -16,7 +16,7 @@ Backend do MediClaw: API REST em Django + DRF com autenticação JWT, logs de sa
 | E6 — Conversations | ✅ | CRUD de conversas, SSE streaming, conversa de boas-vindas, captura automática de dados de saúde via chat |
 | E7 — Hardening | 🔜 | Pendente |
 
-**137 testes passando** (`pytest tests/ -v`).
+**140 testes passando** (`pytest tests/ -v`).
 
 ---
 
@@ -154,7 +154,7 @@ pytest tests/rag/ -v
 pytest tests/conversations/ -v
 ```
 
-Resultado esperado: **137 passed**.
+Resultado esperado: **140 passed**.
 
 > Os testes de RAG e orquestrador mockam as chamadas ao OpenAI — nenhuma chave real é necessária para rodar a suite.
 
@@ -393,9 +393,10 @@ django-api/
 │   │   └── views.py        # register, login, me, admin_create_user
 │   ├── common/             # E1 — Utilitários compartilhados
 │   │   ├── exceptions.py   # AppError, envelope_exception_handler
+│   │   ├── logging_config.py  # structlog setup + get_logger()
 │   │   ├── renderers.py    # EnvelopeJSONRenderer → {data, error, meta}
 │   │   ├── permissions.py  # IsAdminRole, IsOwner
-│   │   ├── middleware.py   # RequestIDMiddleware
+│   │   ├── middleware.py   # RequestIDMiddleware, UserContextMiddleware
 │   │   └── views.py        # GET /health (DB + vector store)
 │   ├── health_logs/        # E3 — Core API
 │   │   ├── models.py       # WeightLog, SleepLog, ActivityLog, NutritionNote
@@ -431,6 +432,7 @@ django-api/
 │   └── urls.py
 ├── tests/
 │   ├── conftest.py          # fixtures: api_client, user, other_user, auth_client
+│   ├── common/              # testes de logging estruturado
 │   ├── accounts/            # 13 testes
 │   ├── health_logs/         # 5 testes
 │   ├── ai_engine/           # 78 testes (guardrails + skills + orquestrador + user_data_capture + user_readiness)
@@ -442,6 +444,45 @@ django-api/
 ├── .env.example
 └── pytest.ini
 ```
+
+---
+
+## Logging
+
+Logs estruturados via **structlog**, integrados ao `LOGGING` do Django.
+
+| Campo | Origem |
+|---|---|
+| `timestamp` | ISO 8601 automático |
+| `level` | Nível do log (`info`, `warning`, `error`, …) |
+| `event` | Nome do evento (`request_completed`, `guardrail_blocked`, …) |
+| `request_id` | UUID por requisição (header `X-Request-ID`) |
+| `user_id` | Usuário autenticado (quando aplicável) |
+| `latency_ms` | Tempo da requisição (access log) |
+
+**Produção** (`DEBUG=False`): saída JSON no stdout.  
+**Desenvolvimento** (`DEBUG=True`): console colorido legível.
+
+Variável opcional: `LOG_LEVEL` (padrão `INFO`).
+
+Exemplo (produção):
+
+```json
+{
+  "timestamp": "2026-06-22T12:00:00.123456Z",
+  "level": "info",
+  "event": "request_completed",
+  "request_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "user_id": 42,
+  "method": "GET",
+  "path": "/api/v1/conversations/",
+  "status_code": 200,
+  "latency_ms": 45.2,
+  "logger": "apps.common.middleware"
+}
+```
+
+> Não logamos conteúdo de mensagens de chat nem dados sensíveis de saúde — apenas IDs e metadados.
 
 ---
 

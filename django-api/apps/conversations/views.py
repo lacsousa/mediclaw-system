@@ -1,5 +1,4 @@
 import json
-import logging
 
 from django.http import StreamingHttpResponse
 from django.utils import timezone
@@ -11,12 +10,13 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
 
 from apps.common.exceptions import AppError
+from apps.common.logging_config import get_logger
 
 from .models import Conversation, Message
 from .serializers import MessageSerializer, CreateMessageInput
 from .services.chat import send_message
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 PAGE_SIZE = 20
 MAX_MESSAGES = 50
@@ -244,12 +244,19 @@ def stream(request, conv_id: int):
                     )
                     conv.save(update_fields=["updated_at"])
                 elif event["type"] == "error":
-                    logger.warning("Stream error for conv %s: %s", conv.id, event)
+                    logger.warning(
+                        "stream_error",
+                        conversation_id=conv.id,
+                        event=event,
+                    )
 
                 yield f"data: {json.dumps(event)}\n\n"
 
         except Exception as e:
-            logger.exception("Unexpected error in stream for conv %s", conv.id)
+            logger.exception(
+                "stream_unexpected_error",
+                conversation_id=conv.id,
+            )
             yield f'data: {json.dumps({"type": "error", "code": "INTERNAL_ERROR", "message": str(e)})}\n\n'
 
     response = StreamingHttpResponse(event_stream(), content_type="text/event-stream")

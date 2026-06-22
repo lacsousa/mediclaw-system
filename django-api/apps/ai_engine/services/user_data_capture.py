@@ -1,9 +1,8 @@
-import logging
-
 from django.utils import timezone
 from rest_framework import serializers
 
 from apps.ai_engine.skills.user_readiness import get_user_readiness
+from apps.common.logging_config import get_logger
 from apps.health_logs.services.persist import (
     DEFAULT_SLEEP_QUALITY,
     persist_activity_log,
@@ -21,7 +20,7 @@ from .capture_rules import (
 )
 from .data_extraction_llm import extract_with_llm, merge_extracted, _should_call_llm
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def capture_from_message(
@@ -95,7 +94,11 @@ def _ensure_patient(
             )
             result.saved["name"] = {"first_name": patient.first_name}
         except Exception as e:
-            logger.warning("Erro ao criar/garantir paciente: %s", e)
+            logger.warning(
+                "patient_ensure_failed",
+                conversation_id=conversation_id,
+                error=str(e),
+            )
             return _get_conversation_patient_id(conversation_id)
 
     # Se DOB foi capturada e já existe um patient na conversa, tentar dedup
@@ -110,7 +113,11 @@ def _ensure_patient(
                     birth_date=birth_date,
                 )
             except Exception as e:
-                logger.warning("Erro ao resolver DOB do paciente: %s", e)
+                logger.warning(
+                    "patient_dob_resolve_failed",
+                    conversation_id=conversation_id,
+                    error=str(e),
+                )
 
     if patient is not None:
         result.patient_id = patient.id

@@ -1,11 +1,10 @@
 """Criação e deduplicação de pacientes a partir de dados capturados no chat."""
 
-import logging
-
+from apps.common.logging_config import get_logger
 from apps.patients.models import Patient
 from apps.conversations.models import Conversation
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def ensure_or_create_patient(
@@ -35,7 +34,11 @@ def ensure_or_create_patient(
     conv.patient = patient
     conv.title = first_name.strip()[:120]
     conv.save(update_fields=["patient", "title", "updated_at"])
-    logger.debug("Patient %s created for conversation %s", patient.id, conversation_id)
+    logger.debug(
+        "patient_created",
+        patient_id=patient.id,
+        conversation_id=conversation_id,
+    )
     return patient
 
 
@@ -78,10 +81,10 @@ def resolve_patient_dob(
         if _tentative_has_no_data:
             current_patient.delete()
             logger.debug(
-                "Merged tentative patient %s into existing %s for conv %s",
-                current_patient.id,
-                existing.id,
-                conversation_id,
+                "patient_merged",
+                tentative_patient_id=current_patient.id,
+                existing_patient_id=existing.id,
+                conversation_id=conversation_id,
             )
         return existing
 

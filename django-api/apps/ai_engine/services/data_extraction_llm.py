@@ -1,8 +1,9 @@
 import json
-import logging
 import os
 
 from pydantic import ValidationError
+
+from apps.common.logging_config import get_logger
 
 from .capture_models import (
     ExtractedActivity,
@@ -14,7 +15,7 @@ from .capture_models import (
 )
 from .capture_rules import has_actionable_data, message_likely_has_health_data
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 EXTRACTION_SYSTEM = """Você extrai dados de saúde do PACIENTE a partir da mensagem do MÉDICO em português.
 O médico descreve o paciente em terceira pessoa ou formato de prontuário (ex.: "Paciente Maria Silva, 72 kg, 1,65 m").
@@ -67,7 +68,7 @@ def extract_with_llm(text: str) -> ExtractedUserData | None:
         payload = json.loads(raw)
         return ExtractedUserData.model_validate(payload)
     except (ValidationError, json.JSONDecodeError, AttributeError, Exception) as e:
-        logger.warning("LLM data extraction failed: %s", e)
+        logger.warning("llm_extraction_failed", error=str(e))
         return None
 
 

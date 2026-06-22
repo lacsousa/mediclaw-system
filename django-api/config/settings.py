@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     "drf_yasg",
     "rest_framework",
     "corsheaders",
-    "apps.common",
+    "apps.common.apps.CommonConfig",
     "apps.accounts",
     "apps.patients",
     "apps.health_logs",
@@ -67,6 +67,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.common.middleware.UserContextMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -136,17 +137,9 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "json": {
-            "format": '{"ts":"%(asctime)s","lvl":"%(levelname)s","msg":"%(message)s","logger":"%(name)s"}'
-        }
-    },
-    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "json"}},
-    "root": {"handlers": ["console"], "level": "INFO"},
-}
+from apps.common.logging_config import get_logging_config
+
+LOGGING = get_logging_config(debug=DEBUG)
 
 CORS_ALLOWED_ORIGINS = [
     origin.strip()

@@ -1,4 +1,3 @@
-import logging
 import os
 import uuid
 from io import BytesIO
@@ -7,10 +6,12 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pypdf import PdfReader
 
+from apps.common.logging_config import get_logger
+
 from .models import KnowledgeDocument
 from .vector_store import get_collection
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 ALLOWED_MIMETYPES = {"application/pdf", "text/markdown", "text/plain"}
 MAX_BYTES = 10 * 1024 * 1024
@@ -63,7 +64,7 @@ def ingest(document: KnowledgeDocument, file_bytes: bytes) -> None:
         )
 
     except Exception as e:
-        logger.exception("Falha ao indexar documento %s", document.id)
+        logger.exception("document_index_failed", document_id=document.id)
         document.status = "ERROR"
         document.error_message = str(e)[:1000]
         document.save(update_fields=["status", "error_message", "updated_at"])

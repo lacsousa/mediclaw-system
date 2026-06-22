@@ -1,11 +1,11 @@
 import json
-import logging
 import os
 import time
 from dataclasses import dataclass, field
 from typing import Iterator
 
 from apps.audit.services.log import record
+from apps.common.logging_config import get_logger
 
 from .guardrails import check_input, check_output
 from .prompts import (
@@ -23,7 +23,7 @@ from .services.user_data_capture import capture_from_message
 from .skills.health_summary import health_summary
 from .skills.user_readiness import UserReadiness, get_user_readiness
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 HISTORY_WINDOW = int(os.environ.get("HISTORY_WINDOW", "6"))
 MAX_TOKENS = int(os.environ.get("MAX_TOKENS_PER_RESPONSE", "800"))
 
@@ -190,6 +190,13 @@ def generate(
     started = time.time()
     pre = check_input(query)
     if not pre.allowed:
+        logger.info(
+            "guardrail_blocked",
+            phase="input",
+            reason=pre.reason,
+            user_id=user_id,
+            conversation_id=conversation_id,
+        )
         record("GUARDRAIL_BLOCKED", user_id=user_id, metadata={"reason": pre.reason})
         return GenerateResult(pre.canned_reply + "\n\n" + DISCLAIMER, 0, True, [])
 
@@ -209,6 +216,13 @@ def generate(
 
     post = check_output(content)
     if not post.allowed:
+        logger.info(
+            "guardrail_blocked",
+            phase="output",
+            reason=post.reason,
+            user_id=user_id,
+            conversation_id=conversation_id,
+        )
         record(
             "GUARDRAIL_BLOCKED",
             user_id=user_id,
@@ -253,6 +267,13 @@ def generate_stream(
 ) -> Iterator[dict]:
     pre = check_input(query)
     if not pre.allowed:
+        logger.info(
+            "guardrail_blocked",
+            phase="input",
+            reason=pre.reason,
+            user_id=user_id,
+            conversation_id=conversation_id,
+        )
         yield {"type": "token", "content": pre.canned_reply + "\n\n" + DISCLAIMER}
         yield {"type": "done", "tokens_used": 0, "blocked": True}
         return
@@ -284,6 +305,13 @@ def generate_stream(
     text = "".join(full)
     post = check_output(text)
     if not post.allowed:
+        logger.info(
+            "guardrail_blocked",
+            phase="output",
+            reason=post.reason,
+            user_id=user_id,
+            conversation_id=conversation_id,
+        )
         yield {
             "type": "token",
             "content": "\n\n[A resposta foi suprimida por política de segurança.]",
