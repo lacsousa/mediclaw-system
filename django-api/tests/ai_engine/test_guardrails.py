@@ -156,5 +156,7 @@ class TestCheckOutput:
         assert result.reason == "forbidden_output"
 
     def test_patient_must_take_dose_blocked(self):
-        result = check_output("O paciente deve tomar 500 mg de paracetamol a cada 8 horas.")
+        result = check_output(
+            "O paciente deve tomar 500 mg de paracetamol a cada 8 horas."
+        )
         assert result.allowed is False

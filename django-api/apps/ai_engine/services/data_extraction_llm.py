@@ -71,7 +71,9 @@ def extract_with_llm(text: str) -> ExtractedUserData | None:
         return None
 
 
-def merge_extracted(primary: ExtractedUserData, secondary: ExtractedUserData) -> ExtractedUserData:
+def merge_extracted(
+    primary: ExtractedUserData, secondary: ExtractedUserData
+) -> ExtractedUserData:
     """Rules (primary) win; secondary (LLM) fills null gaps only."""
     p1, p2 = primary.profile, secondary.profile
     profile = ExtractedProfile(
@@ -102,8 +104,14 @@ def merge_extracted(primary: ExtractedUserData, secondary: ExtractedUserData) ->
         if s1.duration_hours is None and s2.duration_hours is None:
             return None
         return ExtractedSleep(
-            duration_hours=s1.duration_hours if s1.duration_hours is not None else s2.duration_hours,
-            quality_score=s1.quality_score if s1.quality_score is not None else s2.quality_score,
+            duration_hours=(
+                s1.duration_hours
+                if s1.duration_hours is not None
+                else s2.duration_hours
+            ),
+            quality_score=(
+                s1.quality_score if s1.quality_score is not None else s2.quality_score
+            ),
             started_at=s1.started_at or s2.started_at,
         )
 

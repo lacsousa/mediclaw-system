@@ -36,6 +36,7 @@ def conv(db, user):
 
 # --- CRUD ---
 
+
 def test_create_conversation(client):
     resp = client.post("/api/v1/conversations/")
     assert resp.status_code == 201
@@ -46,7 +47,9 @@ def test_create_conversation(client):
     assert resp.data["patient"] is None
 
 
-def test_list_conversations_returns_own_only(client, other_client, user, other_user, db):
+def test_list_conversations_returns_own_only(
+    client, other_client, user, other_user, db
+):
     Conversation.objects.create(doctor=user, title="Mine")
     Conversation.objects.create(doctor=other_user, title="Theirs")
 
@@ -104,6 +107,7 @@ def test_unauthenticated_returns_401(db):
 
 # --- Stream ---
 
+
 def test_stream_missing_token(conv):
     anon = APIClient()
     resp = anon.get(f"/api/v1/conversations/{conv.id}/stream/?prompt=Oi")
@@ -112,6 +116,7 @@ def test_stream_missing_token(conv):
 
 def test_stream_empty_prompt(client, conv, user):
     from rest_framework_simplejwt.tokens import RefreshToken
+
     token = str(RefreshToken.for_user(user).access_token)
     resp = client.get(f"/api/v1/conversations/{conv.id}/stream/?token={token}&prompt=")
     assert resp.status_code == 400
@@ -173,9 +178,7 @@ def test_stream_second_prompt_includes_prior_assistant(db, user, conv, monkeypat
     assert resp.status_code == 200
     b"".join(resp.streaming_content)
 
-    turns = [
-        m for m in _RecordingProvider.last_messages if m["role"] != "system"
-    ]
+    turns = [m for m in _RecordingProvider.last_messages if m["role"] != "system"]
     assert {"role": "assistant", "content": "Olá João!"} in turns
     assert turns[-1]["role"] == "user"
     assert turns[-1]["content"] == "Qual é meu nome?"

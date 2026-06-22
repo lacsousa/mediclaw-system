@@ -39,7 +39,9 @@ def ensure_or_create_patient(
     return patient
 
 
-def resolve_patient_dob(conversation_id: int, doctor_id: int, birth_date) -> Patient | None:
+def resolve_patient_dob(
+    conversation_id: int, doctor_id: int, birth_date
+) -> Patient | None:
     """
     Ao capturar a data de nascimento, verifica se já existe um Patient com
     mesmo nome + DOB para este médico. Se sim, re-vincula a conversa ao Patient
@@ -51,11 +53,15 @@ def resolve_patient_dob(conversation_id: int, doctor_id: int, birth_date) -> Pat
 
     current_patient = conv.patient
 
-    existing = Patient.objects.filter(
-        doctor_id=doctor_id,
-        first_name__iexact=current_patient.first_name,
-        birth_date=birth_date,
-    ).exclude(pk=current_patient.pk).first()
+    existing = (
+        Patient.objects.filter(
+            doctor_id=doctor_id,
+            first_name__iexact=current_patient.first_name,
+            birth_date=birth_date,
+        )
+        .exclude(pk=current_patient.pk)
+        .first()
+    )
 
     if existing:
         # Reutiliza paciente existente — descarta o tentativo sem dados
@@ -73,7 +79,9 @@ def resolve_patient_dob(conversation_id: int, doctor_id: int, birth_date) -> Pat
             current_patient.delete()
             logger.debug(
                 "Merged tentative patient %s into existing %s for conv %s",
-                current_patient.id, existing.id, conversation_id,
+                current_patient.id,
+                existing.id,
+                conversation_id,
             )
         return existing
 

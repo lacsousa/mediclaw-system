@@ -21,9 +21,7 @@ _HEIGHT_CM_RE = re.compile(
     r"(?:altura\s*[:\s]*)?(\d{2,3})\s*cm\b|(\d[.,]\d{1,2})\s*m\b",
     re.IGNORECASE,
 )
-_DATE_RE = re.compile(
-    r"\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})\b"
-)
+_DATE_RE = re.compile(r"\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})\b")
 _SEX_RE = re.compile(
     r"\b(homem|masculino|mulher|feminino|sexo\s*[:\s]*(m|f|other|outro))\b",
     re.IGNORECASE,

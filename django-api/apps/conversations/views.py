@@ -65,7 +65,7 @@ def list_create(request):
     offset = (page - 1) * PAGE_SIZE
     qs = Conversation.objects.filter(doctor=request.user).select_related("patient")
     total = qs.count()
-    items = qs[offset: offset + PAGE_SIZE]
+    items = qs[offset : offset + PAGE_SIZE]
     has_next = offset + PAGE_SIZE < total
     return Response(
         {
@@ -124,7 +124,11 @@ def stream(request, conv_id: int):
 
     if not token_str:
         return StreamingHttpResponse(
-            iter([f'data: {json.dumps({"type": "error", "code": "UNAUTHORIZED", "message": "Token ausente."})}\n\n']),
+            iter(
+                [
+                    f'data: {json.dumps({"type": "error", "code": "UNAUTHORIZED", "message": "Token ausente."})}\n\n'
+                ]
+            ),
             content_type="text/event-stream",
             status=401,
         )
@@ -132,11 +136,16 @@ def stream(request, conv_id: int):
     try:
         token = AccessToken(token_str)
         from django.contrib.auth import get_user_model
+
         User = get_user_model()
         user = User.objects.get(id=token["user_id"])
     except (TokenError, Exception):
         return StreamingHttpResponse(
-            iter([f'data: {json.dumps({"type": "error", "code": "UNAUTHORIZED", "message": "Token inválido."})}\n\n']),
+            iter(
+                [
+                    f'data: {json.dumps({"type": "error", "code": "UNAUTHORIZED", "message": "Token inválido."})}\n\n'
+                ]
+            ),
             content_type="text/event-stream",
             status=401,
         )
@@ -145,21 +154,33 @@ def stream(request, conv_id: int):
         conv = Conversation.objects.get(pk=conv_id, doctor=user)
     except Conversation.DoesNotExist:
         return StreamingHttpResponse(
-            iter([f'data: {json.dumps({"type": "error", "code": "NOT_FOUND", "message": "Conversa não encontrada."})}\n\n']),
+            iter(
+                [
+                    f'data: {json.dumps({"type": "error", "code": "NOT_FOUND", "message": "Conversa não encontrada."})}\n\n'
+                ]
+            ),
             content_type="text/event-stream",
             status=404,
         )
 
     if not prompt:
         return StreamingHttpResponse(
-            iter([f'data: {json.dumps({"type": "error", "code": "VALIDATION_ERROR", "message": "Prompt vazio."})}\n\n']),
+            iter(
+                [
+                    f'data: {json.dumps({"type": "error", "code": "VALIDATION_ERROR", "message": "Prompt vazio."})}\n\n'
+                ]
+            ),
             content_type="text/event-stream",
             status=400,
         )
 
     if conv.messages.count() >= MAX_MESSAGES:
         return StreamingHttpResponse(
-            iter([f'data: {json.dumps({"type": "error", "code": "CONVERSATION_FULL", "message": "Limite de mensagens atingido."})}\n\n']),
+            iter(
+                [
+                    f'data: {json.dumps({"type": "error", "code": "CONVERSATION_FULL", "message": "Limite de mensagens atingido."})}\n\n'
+                ]
+            ),
             content_type="text/event-stream",
             status=400,
         )
@@ -191,7 +212,12 @@ def stream(request, conv_id: int):
                 if event["type"] == "token":
                     full_content.append(event.get("content", ""))
                 elif event["type"] == "citation":
-                    citations.append({"source": event.get("source"), "chunk_id": event.get("chunk_id")})
+                    citations.append(
+                        {
+                            "source": event.get("source"),
+                            "chunk_id": event.get("chunk_id"),
+                        }
+                    )
                 elif event["type"] == "done":
                     tokens_used = event.get("tokens_used", 0)
                     blocked = event.get("blocked", False)

@@ -7,6 +7,7 @@ from rest_framework.response import Response
 def _vector_store_status() -> str:
     try:
         from apps.rag.vector_store import get_collection
+
         get_collection().count()
         return "ok"
     except Exception:

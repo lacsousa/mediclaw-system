@@ -22,6 +22,7 @@ def _fake_embed_query(text):
 def chroma_tmp(tmp_path, monkeypatch):
     monkeypatch.setenv("CHROMA_PERSIST_DIR", str(tmp_path / "chroma"))
     import apps.rag.vector_store as vs
+
     monkeypatch.setattr(vs, "_client", None)
     monkeypatch.setattr(vs, "_collection", None)
 
@@ -29,9 +30,15 @@ def chroma_tmp(tmp_path, monkeypatch):
 @pytest.fixture(autouse=True)
 def mock_embeddings(monkeypatch):
     from langchain_openai import OpenAIEmbeddings
-    monkeypatch.setattr(OpenAIEmbeddings, "embed_documents", lambda self, texts: _fake_embed(texts))
-    monkeypatch.setattr(OpenAIEmbeddings, "embed_query", lambda self, text: _fake_embed_query(text))
+
+    monkeypatch.setattr(
+        OpenAIEmbeddings, "embed_documents", lambda self, texts: _fake_embed(texts)
+    )
+    monkeypatch.setattr(
+        OpenAIEmbeddings, "embed_query", lambda self, text: _fake_embed_query(text)
+    )
     import apps.rag.retriever as ret
+
     monkeypatch.setattr(ret, "_emb", None)
 
 
@@ -54,7 +61,10 @@ def _index_text(text: str, title: str, admin_user, doc_id: int = 1):
     vectors = _get_embeddings().embed_documents(chunks)
     coll = get_collection()
     ids = [f"{doc_id}-{i}" for i in range(len(chunks))]
-    metadatas = [{"document_id": str(doc_id), "title": title, "chunk_index": i} for i in range(len(chunks))]
+    metadatas = [
+        {"document_id": str(doc_id), "title": title, "chunk_index": i}
+        for i in range(len(chunks))
+    ]
     coll.add(ids=ids, documents=chunks, embeddings=vectors, metadatas=metadatas)
 
 

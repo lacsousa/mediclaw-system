@@ -46,6 +46,7 @@ class _PatientQuerysetMixin:
         patient_id = self.request.data.get("patient_id")
         if not patient_id:
             from rest_framework import serializers
+
             raise serializers.ValidationError({"patient_id": "Obrigatório."})
         _get_patient_or_404(self.request, int(patient_id))
         serializer.save(patient_id=int(patient_id))

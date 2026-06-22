@@ -20,6 +20,7 @@ def _fake_embed(texts):
 def chroma_tmp(tmp_path, monkeypatch):
     monkeypatch.setenv("CHROMA_PERSIST_DIR", str(tmp_path / "chroma"))
     import apps.rag.vector_store as vs
+
     monkeypatch.setattr(vs, "_client", None)
     monkeypatch.setattr(vs, "_collection", None)
 
@@ -27,9 +28,15 @@ def chroma_tmp(tmp_path, monkeypatch):
 @pytest.fixture(autouse=True)
 def mock_embeddings(monkeypatch):
     from langchain_openai import OpenAIEmbeddings
-    monkeypatch.setattr(OpenAIEmbeddings, "embed_documents", lambda self, texts: _fake_embed(texts))
-    monkeypatch.setattr(OpenAIEmbeddings, "embed_query", lambda self, text: _fake_embed([text])[0])
+
+    monkeypatch.setattr(
+        OpenAIEmbeddings, "embed_documents", lambda self, texts: _fake_embed(texts)
+    )
+    monkeypatch.setattr(
+        OpenAIEmbeddings, "embed_query", lambda self, text: _fake_embed([text])[0]
+    )
     import apps.rag.retriever as ret
+
     monkeypatch.setattr(ret, "_emb", None)
 
 
@@ -97,7 +104,9 @@ def test_upload_rejects_oversize(admin_client, monkeypatch):
 
 
 def test_upload_rejects_invalid_mimetype(admin_client):
-    html_file = SimpleUploadedFile("page.html", b"<html></html>", content_type="text/html")
+    html_file = SimpleUploadedFile(
+        "page.html", b"<html></html>", content_type="text/html"
+    )
     resp = admin_client.post(
         "/api/v1/admin/knowledge/upload/",
         {"file": html_file},

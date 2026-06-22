@@ -40,7 +40,7 @@ def list_patients(request):
     offset = (page - 1) * PAGE_SIZE
     qs = _annotate_patients(Patient.objects.filter(doctor=request.user))
     total = qs.count()
-    items = qs[offset: offset + PAGE_SIZE]
+    items = qs[offset : offset + PAGE_SIZE]
     has_next = offset + PAGE_SIZE < total
     return Response(
         {
@@ -55,9 +55,9 @@ def list_patients(request):
 @permission_classes([IsAuthenticated])
 def patient_detail(request, patient_id: int):
     try:
-        patient = _annotate_patients(
-            Patient.objects.filter(doctor=request.user)
-        ).get(pk=patient_id)
+        patient = _annotate_patients(Patient.objects.filter(doctor=request.user)).get(
+            pk=patient_id
+        )
     except Patient.DoesNotExist:
         raise AppError("NOT_FOUND", "Paciente não encontrado.", 404)
 

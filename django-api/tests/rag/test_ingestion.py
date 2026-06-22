@@ -25,6 +25,7 @@ def chroma_tmp(tmp_path, monkeypatch):
     monkeypatch.setenv("CHROMA_PERSIST_DIR", str(tmp_path / "chroma"))
     # reset singleton so cada teste usa instância limpa
     import apps.rag.vector_store as vs
+
     monkeypatch.setattr(vs, "_client", None)
     monkeypatch.setattr(vs, "_collection", None)
 
@@ -32,9 +33,15 @@ def chroma_tmp(tmp_path, monkeypatch):
 @pytest.fixture(autouse=True)
 def mock_embeddings(monkeypatch):
     from langchain_openai import OpenAIEmbeddings
-    monkeypatch.setattr(OpenAIEmbeddings, "embed_documents", lambda self, texts: _fake_embed(texts))
-    monkeypatch.setattr(OpenAIEmbeddings, "embed_query", lambda self, text: _fake_embed_query(text))
+
+    monkeypatch.setattr(
+        OpenAIEmbeddings, "embed_documents", lambda self, texts: _fake_embed(texts)
+    )
+    monkeypatch.setattr(
+        OpenAIEmbeddings, "embed_query", lambda self, text: _fake_embed_query(text)
+    )
     import apps.rag.retriever as ret
+
     monkeypatch.setattr(ret, "_emb", None)
 
 

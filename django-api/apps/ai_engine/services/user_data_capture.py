@@ -14,7 +14,11 @@ from apps.health_logs.services.persist import (
 from apps.patients.services.patient import ensure_or_create_patient, resolve_patient_dob
 
 from .capture_models import CaptureResult, ExtractedUserData
-from .capture_rules import has_actionable_data, message_likely_has_health_data, parse_rules
+from .capture_rules import (
+    has_actionable_data,
+    message_likely_has_health_data,
+    parse_rules,
+)
 from .data_extraction_llm import extract_with_llm, merge_extracted, _should_call_llm
 
 logger = logging.getLogger(__name__)
@@ -63,6 +67,7 @@ def capture_from_message(
 
 def _get_conversation_patient_id(conversation_id: int) -> int | None:
     from apps.conversations.models import Conversation
+
     try:
         return Conversation.objects.get(pk=conversation_id).patient_id
     except Conversation.DoesNotExist:
@@ -135,6 +140,7 @@ def _persist_health_data(
     if profile_payload:
         try:
             from apps.patients.models import Patient
+
             patient = Patient.objects.get(pk=patient_id)
             for field, value in profile_payload.items():
                 setattr(patient, field, value)

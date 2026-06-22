@@ -63,7 +63,8 @@ class TestCaptureFromMessage:
 
     def test_full_onboarding_with_name(self, user, conv):
         result = capture_from_message(
-            conv.id, user.id,
+            conv.id,
+            user.id,
             "Me chamo João, tenho 1,75 m, 80 kg, nasci 15/03/1990, sou homem",
         )
         assert "name" in result.saved
@@ -92,7 +93,9 @@ class TestCaptureFromMessage:
         assert log.type == "corrida"
         assert log.duration_min == 30
 
-    def test_nutrition_note_created_with_existing_patient(self, user, conv_with_patient):
+    def test_nutrition_note_created_with_existing_patient(
+        self, user, conv_with_patient
+    ):
         conv, patient = conv_with_patient
         result = capture_from_message(
             conv.id, user.id, "Almocei frango grelhado com arroz e salada"
@@ -101,9 +104,7 @@ class TestCaptureFromMessage:
         assert NutritionNote.objects.filter(patient=patient).exists()
 
     def test_no_patient_no_health_data_saved(self, user, conv):
-        result = capture_from_message(
-            conv.id, user.id, "Dormi 7 horas"
-        )
+        result = capture_from_message(conv.id, user.id, "Dormi 7 horas")
         # Sem nome, sem patient → dados de saúde não persistidos
         assert result.patient_id is None
         assert WeightLog.objects.count() == 0
@@ -144,7 +145,10 @@ class TestCaptureFromMessage:
 
     def test_llm_merge_when_enabled(self, user, conv, monkeypatch):
         monkeypatch.setenv("DATA_CAPTURE_LLM", "true")
-        from apps.ai_engine.services.capture_models import ExtractedUserData, ExtractedWeight
+        from apps.ai_engine.services.capture_models import (
+            ExtractedUserData,
+            ExtractedWeight,
+        )
 
         def fake_llm(text):
             return ExtractedUserData(

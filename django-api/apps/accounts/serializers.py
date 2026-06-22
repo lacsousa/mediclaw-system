@@ -37,6 +37,7 @@ class RegisterSerializer(serializers.Serializer):
             accepted_terms_at=timezone.now(),
         )
         from apps.conversations.services.welcome import ensure_welcome_conversation
+
         ensure_welcome_conversation(user)
         return user
 
@@ -85,5 +86,6 @@ class AdminCreateUserSerializer(serializers.Serializer):
             role=validated.get("role", "USER"),
         )
         from apps.conversations.services.welcome import ensure_welcome_conversation
+
         ensure_welcome_conversation(user)
         return user

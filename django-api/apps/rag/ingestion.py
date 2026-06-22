@@ -58,7 +58,9 @@ def ingest(document: KnowledgeDocument, file_bytes: bytes) -> None:
         document.status = "INDEXED"
         document.chunk_count = len(chunks)
         document.error_message = ""
-        document.save(update_fields=["status", "chunk_count", "error_message", "updated_at"])
+        document.save(
+            update_fields=["status", "chunk_count", "error_message", "updated_at"]
+        )
 
     except Exception as e:
         logger.exception("Falha ao indexar documento %s", document.id)

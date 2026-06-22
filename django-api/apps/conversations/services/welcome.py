@@ -12,8 +12,8 @@ WELCOME_MESSAGE = (
     "Use o chat para registrar dados do paciente e solicitar apoio clínico (hipóteses, condutas, "
     "evidências). Para iniciar um atendimento, abra uma **nova conversa** e descreva o paciente — "
     "por exemplo:\n\n"
-    "> \"Paciente: João Silva, 45 anos, 1,78 m, 82 kg, nasceu em 10/05/1980, sexo masculino. "
-    "Dorme em média 6 horas por noite e caminha 30 minutos diariamente.\"\n\n"
+    '> "Paciente: João Silva, 45 anos, 1,78 m, 82 kg, nasceu em 10/05/1980, sexo masculino. '
+    'Dorme em média 6 horas por noite e caminha 30 minutos diariamente."\n\n'
     "Peso, sono, atividade e refeições são salvos automaticamente quando mencionados. "
     "O nome do paciente aparece na conversa assim que identificado.\n\n"
     f"{DISCLAIMER}"

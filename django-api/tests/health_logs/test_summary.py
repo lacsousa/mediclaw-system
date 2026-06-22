@@ -105,9 +105,7 @@ class TestSummary:
 
     def test_user_cannot_delete_another_patients_log(self, auth_client, other_user):
         now = timezone.now()
-        other_patient = Patient.objects.create(
-            doctor=other_user, first_name="Outro"
-        )
+        other_patient = Patient.objects.create(doctor=other_user, first_name="Outro")
         log = WeightLog.objects.create(
             patient=other_patient,
             value_kg=80.0,

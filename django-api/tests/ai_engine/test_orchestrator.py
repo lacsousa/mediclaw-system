@@ -60,10 +60,14 @@ class TestGenerate:
 
     def test_orchestrator_blocks_urgency_without_calling_llm(self, monkeypatch, user):
         self._patch_provider(monkeypatch, _RaisingProvider())
-        result = generate(user.id, conversation_id=0, query="Estou com dor forte no peito")
+        result = generate(
+            user.id, conversation_id=0, query="Estou com dor forte no peito"
+        )
         assert result.blocked_by_guardrail is True
 
-    def test_orchestrator_blocks_prescription_without_calling_llm(self, monkeypatch, user):
+    def test_orchestrator_blocks_prescription_without_calling_llm(
+        self, monkeypatch, user
+    ):
         self._patch_provider(monkeypatch, _RaisingProvider())
         result = generate(user.id, conversation_id=0, query="Que remédio devo tomar?")
         assert result.blocked_by_guardrail is True
@@ -76,9 +80,7 @@ class TestGenerate:
         assert result.content.endswith(DISCLAIMER)
 
     def test_orchestrator_does_not_double_append_disclaimer(self, monkeypatch, user):
-        provider = _FakeProvider(
-            content="Dica sobre sono. " + DISCLAIMER
-        )
+        provider = _FakeProvider(content="Dica sobre sono. " + DISCLAIMER)
         self._patch_provider(monkeypatch, provider)
         result = generate(user.id, conversation_id=0, query="Como melhorar o sono?")
         assert result.content.count(DISCLAIMER) == 1
@@ -86,7 +88,9 @@ class TestGenerate:
     def test_orchestrator_returns_tokens_used(self, monkeypatch, user):
         provider = _FakeProvider(content="Tudo bem.", tokens=42)
         self._patch_provider(monkeypatch, provider)
-        result = generate(user.id, conversation_id=0, query="Qual a importância da hidratação?")
+        result = generate(
+            user.id, conversation_id=0, query="Qual a importância da hidratação?"
+        )
         assert result.tokens_used == 42
 
     def test_orchestrator_handles_provider_error(self, monkeypatch, user):
@@ -96,6 +100,7 @@ class TestGenerate:
             class Bad:
                 def complete(self, messages, max_tokens):
                     raise LLMProviderError("timeout")
+
             return Bad()
 
         monkeypatch.setattr("apps.ai_engine.orchestrator.get_provider", _bad_provider)
@@ -222,7 +227,9 @@ class TestGenerateStream:
 
     def test_stream_blocks_diagnosis_immediately(self, monkeypatch, user):
         self._patch_provider(monkeypatch, _RaisingProvider())
-        events = list(generate_stream(user.id, conversation_id=0, query="Qual o meu diagnóstico?"))
+        events = list(
+            generate_stream(user.id, conversation_id=0, query="Qual o meu diagnóstico?")
+        )
         types = [e["type"] for e in events]
         assert "token" in types
         assert "done" in types
@@ -232,7 +239,9 @@ class TestGenerateStream:
     def test_stream_yields_tokens_for_normal_query(self, monkeypatch, user):
         provider = _FakeProvider(content="Hidratação é essencial.")
         self._patch_provider(monkeypatch, provider)
-        events = list(generate_stream(user.id, conversation_id=0, query="Importância da água?"))
+        events = list(
+            generate_stream(user.id, conversation_id=0, query="Importância da água?")
+        )
         token_events = [e for e in events if e["type"] == "token"]
         assert len(token_events) > 0
         done = next(e for e in events if e["type"] == "done")
@@ -245,9 +254,7 @@ class TestGenerateStream:
 
         conv = Conversation.objects.create(doctor=user, title="Test")
         Message.objects.create(conversation=conv, role="USER", content="Me chamo João")
-        Message.objects.create(
-            conversation=conv, role="ASSISTANT", content="Olá João!"
-        )
+        Message.objects.create(conversation=conv, role="ASSISTANT", content="Olá João!")
         Message.objects.create(
             conversation=conv, role="USER", content="Qual é meu nome?"
         )
@@ -288,9 +295,7 @@ class TestMultiTurnHistory:
 
         conv = Conversation.objects.create(doctor=user, title="Test")
         Message.objects.create(conversation=conv, role="USER", content="Me chamo João")
-        Message.objects.create(
-            conversation=conv, role="ASSISTANT", content="Olá João!"
-        )
+        Message.objects.create(conversation=conv, role="ASSISTANT", content="Olá João!")
         Message.objects.create(
             conversation=conv, role="USER", content="Qual é meu nome?"
         )

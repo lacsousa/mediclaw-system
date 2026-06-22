@@ -30,7 +30,9 @@ def upload(request):
     if f.size > MAX_BYTES:
         raise AppError("FILE_TOO_LARGE", "Arquivo excede 10 MB.", 400)
     if f.content_type not in ALLOWED_MIMETYPES:
-        raise AppError("INVALID_FILE_TYPE", f"Tipo não suportado: {f.content_type}", 400)
+        raise AppError(
+            "INVALID_FILE_TYPE", f"Tipo não suportado: {f.content_type}", 400
+        )
 
     title = (request.data.get("title") or f.name)[:200]
     doc = KnowledgeDocument.objects.create(
@@ -41,9 +43,18 @@ def upload(request):
         uploaded_by=request.user,
     )
     ingest(doc, f.read())
-    record("KB_UPLOAD", user=request.user, metadata={"document_id": doc.id, "status": doc.status})
+    record(
+        "KB_UPLOAD",
+        user=request.user,
+        metadata={"document_id": doc.id, "status": doc.status},
+    )
     return Response(
-        {"id": doc.id, "title": doc.title, "status": doc.status, "chunk_count": doc.chunk_count},
+        {
+            "id": doc.id,
+            "title": doc.title,
+            "status": doc.status,
+            "chunk_count": doc.chunk_count,
+        },
         status=201,
     )
 
@@ -51,7 +62,9 @@ def upload(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def list_documents(request):
-    qs = KnowledgeDocument.objects.values("id", "title", "status", "chunk_count", "created_at")
+    qs = KnowledgeDocument.objects.values(
+        "id", "title", "status", "chunk_count", "created_at"
+    )
     return Response(list(qs))
 
 
@@ -70,6 +83,7 @@ def document_status(request, doc_id: int):
             "error_message": doc.error_message,
         }
     )
+
 
 @api_view(["GET"])
 @permission_classes([IsAdminRole])
@@ -98,6 +112,7 @@ def metrics(request):
     }
 
     return Response(data)
+
 
 @api_view(["DELETE"])
 @permission_classes([IsAuthenticated])

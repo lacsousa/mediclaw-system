@@ -82,9 +82,7 @@ def _load_history(conversation_id: int) -> list[dict]:
         "-created_at"
     )[:HISTORY_WINDOW]
     return list(
-        reversed(
-            [{"role": m.role.lower(), "content": m.content} for m in history_qs]
-        )
+        reversed([{"role": m.role.lower(), "content": m.content} for m in history_qs])
     )
 
 
@@ -108,7 +106,10 @@ def _build_onboarding_focus_messages(
     missing_list = _format_missing_list(readiness)
     system = ONBOARDING_FOCUS_TEMPLATE.format(missing_list=missing_list)
     system = _append_capture_context(system, capture)
-    return [{"role": "system", "content": system}, *_history_with_query(conversation_id, query)]
+    return [
+        {"role": "system", "content": system},
+        *_history_with_query(conversation_id, query),
+    ]
 
 
 def _build_messages(
@@ -193,7 +194,11 @@ def generate(
         return GenerateResult(pre.canned_reply + "\n\n" + DISCLAIMER, 0, True, [])
 
     capture_result = capture_from_message(conversation_id, user_id, query)
-    capture_meta = capture_result.to_metadata() if capture_result.saved or capture_result.errors else None
+    capture_meta = (
+        capture_result.to_metadata()
+        if capture_result.saved or capture_result.errors
+        else None
+    )
 
     patient_id = capture_result.patient_id
     messages, citations, onboarding_mode, missing_basics = _resolve_messages(
@@ -253,7 +258,11 @@ def generate_stream(
         return
 
     capture_result = capture_from_message(conversation_id, user_id, query)
-    capture_meta = capture_result.to_metadata() if capture_result.saved or capture_result.errors else None
+    capture_meta = (
+        capture_result.to_metadata()
+        if capture_result.saved or capture_result.errors
+        else None
+    )
 
     patient_id = capture_result.patient_id
     messages, citations, onboarding_mode, missing_basics = _resolve_messages(
@@ -303,6 +312,7 @@ def generate_stream(
         # Inclui o nome para a sidebar do frontend atualizar sem re-fetch
         try:
             from apps.patients.models import Patient
+
             p = Patient.objects.get(pk=capture_result.patient_id)
             done_payload["patient_first_name"] = p.first_name
         except Exception:

@@ -12,7 +12,9 @@ class KnowledgeDocument(models.Model):
     title = models.CharField(max_length=200)
     file_name = models.CharField(max_length=255)
     mime_type = models.CharField(max_length=80)
-    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default="PROCESSING")
+    status = models.CharField(
+        max_length=12, choices=STATUS_CHOICES, default="PROCESSING"
+    )
     chunk_count = models.PositiveIntegerField(null=True, blank=True)
     error_message = models.TextField(blank=True)
     uploaded_by = models.ForeignKey(
