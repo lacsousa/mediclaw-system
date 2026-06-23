@@ -116,10 +116,12 @@ u.save()
 ### 5. Rodar o servidor
 
 ```bash
-python manage.py runserver
+uv run python manage.py runserver
 ```
 
 API disponível em `http://localhost:8000`.
+
+> **Dica:** para subir backend e frontend simultaneamente, use `make dev` na raiz do repositório.
 
 ---
 

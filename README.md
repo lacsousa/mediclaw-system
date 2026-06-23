@@ -565,6 +565,19 @@ Derivados do roadmap E7 e dos ADRs documentados:
 
 ## 15. Instalação e reprodutibilidade
 
+### 15.0 Rodando com um único comando (recomendado)
+
+Na raiz do repositório há um `Makefile` que sobe backend e frontend em paralelo:
+
+```bash
+# Na raiz do projeto
+make dev       # sobe django-api (porta 8000) + react-painel (porta 3000)
+make backend   # apenas o backend
+make frontend  # apenas o frontend
+```
+
+> **Pré-requisito:** `make` disponível (padrão em macOS e Linux). No Windows, use WSL ou execute os serviços separadamente conforme as seções 15.2 e 15.3.
+
 ### 15.1 Pré-requisitos
 
 - **Node.js** ≥ 20
@@ -576,14 +589,11 @@ Derivados do roadmap E7 e dos ADRs documentados:
 
 ```bash
 cd django-api
-python -m venv .venv
-# Windows: .venv\Scripts\activate
-# Linux/macOS: source .venv/bin/activate
-pip install -r requirements.txt
+uv sync
 cp .env.example .env
 # Editar .env: SECRET_KEY, DB_*, OPENAI_API_KEY, LLM_PROVIDER
-python manage.py migrate
-python manage.py runserver
+uv run python manage.py migrate
+uv run python manage.py runserver
 ```
 
 Documentação completa: [`django-api/README.md`](django-api/README.md)
@@ -617,6 +627,7 @@ Abrir `http://localhost:3000`. Documentação completa: [`react-painel/README.md
 ```
 mediclaw/
 ├── README.md                 # Este documento (entrega acadêmica)
+├── Makefile                  # Atalhos de desenvolvimento (make dev, make backend, make frontend)
 ├── docs/
 │   └── screenshots/          # Capturas de tela da interface
 ├── django-api/               # Backend Django + DRF
