@@ -3,7 +3,12 @@ import { logout, refreshToken } from "./auth";
 
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL ?? "",
-  withCredentials: true, // envia cookies httpOnly automaticamente em toda requisição
+});
+
+api.interceptors.request.use((config) => {
+  const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
 });
 
 api.interceptors.response.use(
@@ -19,7 +24,9 @@ api.interceptors.response.use(
       error.config._retry = true;
       const refreshed = await refreshToken();
       if (refreshed) {
-        // FormData streams são consumidos no primeiro envio — não pode retentar automaticamente
+        const token = localStorage.getItem("access_token");
+        error.config.headers.Authorization = `Bearer ${token}`;
+        // FormData streams are consumed on first send — cannot retry automatically
         if (error.config.data instanceof FormData) {
           return Promise.reject(error);
         }

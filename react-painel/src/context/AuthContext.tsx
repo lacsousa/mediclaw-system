@@ -22,24 +22,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     async function hydrate() {
-      // Tenta restaurar sessão via cookie httpOnly (sem localStorage).
-      // O cookie access_token é enviado automaticamente via withCredentials.
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const res = await api.get<User>("/api/v1/auth/me/");
         setUser(res.data);
       } catch {
-        // Access token expirado: tenta renovar via refresh token (também cookie).
         const refreshed = await refreshToken();
         if (refreshed) {
           try {
             const res = await api.get<User>("/api/v1/auth/me/");
             setUser(res.data);
           } catch {
-            // Refresh também falhou: sessão encerrada, nenhum cookie válido.
-            setUser(null);
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("refresh_token");
           }
         } else {
-          setUser(null);
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
         }
       } finally {
         setIsLoading(false);
@@ -49,15 +53,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     hydrate();
   }, []);
 
-  const login = useCallback((_tokens: { access: string; refresh: string }, userData: User) => {
-    // Os cookies são setados pelo backend na resposta de login.
-    // Aqui apenas sincronizamos o estado React com o usuário recebido.
+  const login = useCallback((tokens: { access: string; refresh: string }, userData: User) => {
+    localStorage.setItem("access_token", tokens.access);
+    localStorage.setItem("refresh_token", tokens.refresh);
     setUser(userData);
   }, []);
 
   const logout = useCallback(() => {
     setUser(null);
-    authLogout(); // chama backend para blacklistar token e limpar cookies
+    authLogout();
   }, []);
 
   return (

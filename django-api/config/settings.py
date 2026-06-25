@@ -57,7 +57,6 @@ INSTALLED_APPS = [
     "apps.ai_engine",
     "apps.rag",
     "apps.audit",
-    "rest_framework_simplejwt.token_blacklist",
 ]
 
 MIDDLEWARE = [
@@ -114,7 +113,7 @@ AUTH_USER_MODEL = "accounts.User"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "apps.common.authentication.CookieJWTAuthentication"
+        "rest_framework_simplejwt.authentication.JWTAuthentication"
     ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_RENDERER_CLASSES": ["apps.common.renderers.EnvelopeJSONRenderer"],
@@ -137,16 +136,6 @@ SIMPLE_JWT = {
         days=int(os.environ.get("REFRESH_TOKEN_DAYS", "1"))
     ),
     "AUTH_HEADER_TYPES": ("Bearer",),
-    # Blacklist
-    "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": True,
-    # Cookie
-    "AUTH_COOKIE": "access_token",
-    "AUTH_COOKIE_REFRESH": "refresh_token",
-    "AUTH_COOKIE_HTTP_ONLY": True,
-    "AUTH_COOKIE_SECURE": not DEBUG,   # True em produção (HTTPS)
-    "AUTH_COOKIE_SAMESITE": "Lax",
-    "AUTH_COOKIE_PATH": "/",
 }
 
 from apps.common.logging_config import get_logging_config
@@ -167,4 +156,3 @@ CORS_ALLOWED_ORIGINS = [
     )
     if origin.strip()
 ]
-CORS_ALLOW_CREDENTIALS = True

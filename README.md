@@ -455,13 +455,10 @@ Dados persistidos criam ou atualizam `Patient` e registram logs em `health_logs`
 |----------|---------------|
 | Autenticação | JWT Bearer (access 30 min, refresh 1 dia) |
 | Autorização | Isolamento por médico; endpoints admin com `IsAdminRole` |
-| Tokens JWT | Cookies `httpOnly; SameSite=Lax` — inacessíveis ao JavaScript |
 | Rate limiting | Anônimo 30/min, usuário 60/min, chat 10/min |
 | CORS | Origens explícitas via `CORS_ALLOWED_ORIGINS` |
 | Senha | Validação mínima (8 chars, letra + número) |
 | Termos de uso | `accepted_terms_at` obrigatório no registro |
-| Blacklist de token | Refresh token invalidado no logout via `token_blacklist` |
-| SSE autenticado | Cookie enviado via `withCredentials=true` — sem token na URL |
 | Upload | Limite 10 MB; MIME whitelist (PDF, TXT, MD) |
 | Limite de conversa | Máximo 50 mensagens por thread |
 | Request tracing | `RequestIDMiddleware` para correlação de logs |
@@ -540,11 +537,10 @@ Cobertura de formulários de auth, componentes de chat (input SSE, bubbles, disc
 | Limitação | Impacto | Mitigação futura |
 |-----------|---------|------------------|
 | Guardrails por regex | Falsos negativos/positivos; bypass por paráfrase | Classificador ML dedicado (E7) |
-| ~~JWT em localStorage~~ | **Corrigido** — tokens em cookies httpOnly | — |
-| ~~Token SSE na query string~~ | **Corrigido** — cookie enviado via `withCredentials` | — |
+| JWT em localStorage | Risco teórico de exfiltração via XSS | httpOnly cookies + proxy Next.js |
+| Token SSE na query string | Exposição em logs de servidor/proxy | Token efêmero de curta duração ou WebSocket |
 | Indexação RAG síncrona | Timeout em documentos grandes | Fila assíncrona (Celery/RQ) |
 | Sem polling de status KB | UI não atualiza status PROCESSING automaticamente | Polling ou SSE admin (ADR-06 front) |
-| ~~Sem blacklist no logout~~ | **Corrigido** — `token_blacklist` + `ROTATE_REFRESH_TOKENS` | — |
 | Audit trail stub | Sem trilha forense persistente | Tabela de audit + retenção (E7) |
 | Dependência de API externa | Custo, latência, indisponibilidade do provedor | Fallback multi-provider, modelos locais |
 | ChromaDB single-node | Não escala horizontalmente | Migração para pgvector |

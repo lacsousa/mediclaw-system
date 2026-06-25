@@ -12,9 +12,7 @@ interface SSECallbacks {
 }
 
 export function openStream(url: string, callbacks: SSECallbacks): () => void {
-  // withCredentials: true garante que os cookies httpOnly (access_token)
-  // sejam enviados automaticamente — sem necessidade de token na URL.
-  const es = new EventSource(url, { withCredentials: true });
+  const es = new EventSource(url);
 
   es.onmessage = (event) => {
     try {
