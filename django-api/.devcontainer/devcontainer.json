@@ -4,7 +4,11 @@
   "service": "app",
   "workspaceFolder": "/workspaces",
   "features": {
-    "ghcr.io/devcontainers/features/git:1": {}
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainer-community/devcontainer-features/astral.sh-uv:1": {}
+  },
+  "containerEnv": {
+    "UV_LINK_MODE": "copy"
   },
   "customizations": {
     "vscode": {

@@ -128,6 +128,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
+    "USER_ID_FIELD": "pk",
     "ACCESS_TOKEN_LIFETIME": timedelta(
         minutes=int(os.environ.get("ACCESS_TOKEN_MINUTES", "30"))
     ),
@@ -138,6 +139,13 @@ SIMPLE_JWT = {
 }
 
 from apps.common.logging_config import get_logging_config
+
+
+SWAGGER_SETTINGS = {
+    "SECURITY_DEFINITIONS": {
+        "api_key": {"type": "apiKey", "in": "header", "name": "Authorization"}
+    },
+}
 
 LOGGING = get_logging_config(debug=DEBUG)
 
