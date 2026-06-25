@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { logout as authLogout } from "@/lib/auth";
+import { logout as authLogout, refreshToken } from "@/lib/auth";
 import type { User } from "@/types/api";
 
 interface AuthContextValue {
@@ -22,13 +22,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     async function hydrate() {
-      // O interceptor do Axios já tenta o refresh automaticamente se /me/ retornar 401.
-      // Se o refresh também falhar, o interceptor rejeita e caímos no catch abaixo.
+      // Tenta restaurar sessão via cookie httpOnly (sem localStorage).
+      // O cookie access_token é enviado automaticamente via withCredentials.
       try {
         const res = await api.get<User>("/api/v1/auth/me/");
         setUser(res.data);
       } catch {
-        setUser(null);
+        // Access token expirado: tenta renovar via refresh token (também cookie).
+        const refreshed = await refreshToken();
+        if (refreshed) {
+          try {
+            const res = await api.get<User>("/api/v1/auth/me/");
+            setUser(res.data);
+          } catch {
+            // Refresh também falhou: sessão encerrada, nenhum cookie válido.
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -38,12 +50,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback((_tokens: { access: string; refresh: string }, userData: User) => {
+    // Os cookies são setados pelo backend na resposta de login.
+    // Aqui apenas sincronizamos o estado React com o usuário recebido.
     setUser(userData);
   }, []);
 
   const logout = useCallback(() => {
     setUser(null);
-    authLogout();
+    authLogout(); // chama backend para blacklistar token e limpar cookies
   }, []);
 
   return (
