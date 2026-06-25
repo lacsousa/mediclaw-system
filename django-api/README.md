@@ -113,7 +113,15 @@ u.save()
 "
 ```
 
-### 5. Rodar o servidor
+### 5. Migração do token blacklist (necessária uma vez)
+
+O sistema de blacklist de refresh tokens requer tabelas próprias:
+
+```bash
+uv run python manage.py migrate
+```
+
+### 6. Rodar o servidor
 
 ```bash
 uv run python manage.py runserver
@@ -161,6 +169,29 @@ Resultado esperado: **140 passed**.
 > Os testes de RAG e orquestrador mockam as chamadas ao OpenAI — nenhuma chave real é necessária para rodar a suite.
 
 ---
+
+
+---
+
+## Segurança — autenticação por cookie httpOnly
+
+O projeto implementa três melhorias sobre o fluxo JWT padrão:
+
+**1. Tokens em cookies httpOnly (proteção contra XSS)**
+Login e registro retornam `access_token` e `refresh_token` como cookies `httpOnly; SameSite=Lax`. O JavaScript do frontend nunca tem acesso direto ao token.
+
+**2. SSE autenticado via cookie (sem token na URL)**
+O `EventSource` do chat usa `withCredentials: true`, enviando o cookie automaticamente. O backend lê o token do cookie — sem mais `?token=` exposto em logs.
+
+**3. Blacklist de refresh token no logout**
+`POST /api/v1/auth/logout/` blacklista o refresh token antes de limpar os cookies. Tokens capturados antes do logout tornam-se inválidos imediatamente.
+
+| Variável | Padrão | Descrição |
+|---|---|---|
+| `ACCESS_TOKEN_MINUTES` | `30` | Validade do access token |
+| `REFRESH_TOKEN_DAYS` | `1` | Validade do refresh token |
+
+Em produção, configure `AUTH_COOKIE_SECURE=True` é automático quando `DEBUG=False`.
 
 ## Variáveis de ambiente
 

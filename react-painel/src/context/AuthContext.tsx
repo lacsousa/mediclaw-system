@@ -22,28 +22,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     async function hydrate() {
-      const token = localStorage.getItem("access_token");
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
-
+      // Tenta restaurar sessão via cookie httpOnly (sem localStorage).
+      // O cookie access_token é enviado automaticamente via withCredentials.
       try {
         const res = await api.get<User>("/api/v1/auth/me/");
         setUser(res.data);
       } catch {
+        // Access token expirado: tenta renovar via refresh token (também cookie).
         const refreshed = await refreshToken();
         if (refreshed) {
           try {
             const res = await api.get<User>("/api/v1/auth/me/");
             setUser(res.data);
           } catch {
-            localStorage.removeItem("access_token");
-            localStorage.removeItem("refresh_token");
+            // Refresh também falhou: sessão encerrada, nenhum cookie válido.
+            setUser(null);
           }
         } else {
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("refresh_token");
+          setUser(null);
         }
       } finally {
         setIsLoading(false);
@@ -53,15 +49,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     hydrate();
   }, []);
 
-  const login = useCallback((tokens: { access: string; refresh: string }, userData: User) => {
-    localStorage.setItem("access_token", tokens.access);
-    localStorage.setItem("refresh_token", tokens.refresh);
+  const login = useCallback((_tokens: { access: string; refresh: string }, userData: User) => {
+    // Os cookies são setados pelo backend na resposta de login.
+    // Aqui apenas sincronizamos o estado React com o usuário recebido.
     setUser(userData);
   }, []);
 
   const logout = useCallback(() => {
     setUser(null);
-    authLogout();
+    authLogout(); // chama backend para blacklistar token e limpar cookies
   }, []);
 
   return (

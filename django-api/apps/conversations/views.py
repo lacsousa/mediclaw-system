@@ -118,34 +118,45 @@ def post_message(request, conv_id: int):
 
 
 def stream(request, conv_id: int):
-    """GET /api/v1/conversations/{id}/stream/ — auth via ?token= (EventSource sem headers)."""
-    token_str = request.GET.get("token", "")
+    """
+    GET /api/v1/conversations/{id}/stream/
+
+    Autenticação: cookie httpOnly `access_token` enviado automaticamente
+    pelo browser via EventSource com withCredentials=true.
+
+    Mantém suporte ao ?token= na query string como fallback para
+    compatibilidade com clientes não-browser.
+    """
+    from django.contrib.auth import get_user_model
+
+    # 1. Tenta o cookie httpOnly (fluxo seguro — browser com withCredentials)
+    cookie_name = settings.SIMPLE_JWT.get("AUTH_COOKIE", "access_token")
+    token_str = request.COOKIES.get(cookie_name)
+
+    # 2. Fallback: query string (legado / ferramentas de teste)
+    if not token_str:
+        token_str = request.GET.get("token", "")
+
     prompt = (request.GET.get("prompt") or "").strip()
 
     if not token_str:
         return StreamingHttpResponse(
-            iter(
-                [
-                    f'data: {json.dumps({"type": "error", "code": "UNAUTHORIZED", "message": "Token ausente."})}\n\n'
-                ]
-            ),
+            iter([
+                f'data: {json.dumps({"type": "error", "code": "UNAUTHORIZED", "message": "Token ausente."})}\'\'\'\n\n'
+            ]),
             content_type="text/event-stream",
             status=401,
         )
 
     try:
         token = AccessToken(token_str)
-        from django.contrib.auth import get_user_model
-
         User = get_user_model()
         user = User.objects.get(id=token["user_id"])
     except (TokenError, Exception):
         return StreamingHttpResponse(
-            iter(
-                [
-                    f'data: {json.dumps({"type": "error", "code": "UNAUTHORIZED", "message": "Token inválido."})}\n\n'
-                ]
-            ),
+            iter([
+                f'data: {json.dumps({"type": "error", "code": "UNAUTHORIZED", "message": "Token inválido."})}\'\'\'\n\n'
+            ]),
             content_type="text/event-stream",
             status=401,
         )

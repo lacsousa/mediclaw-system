@@ -51,8 +51,8 @@ export function ChatInput({
     setPartialReply("");
     setCitations([]);
 
-    const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : "";
-    const url = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/conversations/${conversationId}/stream/?prompt=${encodeURIComponent(prompt)}&token=${token ?? ""}`;
+    // O cookie access_token é enviado automaticamente pelo EventSource via withCredentials.
+    const url = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/conversations/${conversationId}/stream/?prompt=${encodeURIComponent(prompt)}`;
 
     let isDone = false;
 
