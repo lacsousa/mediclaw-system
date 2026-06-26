@@ -35,4 +35,52 @@
 - `uv run python manage.py runserver`: Inicia o servidor de desenvolvimento local do Django para rodar o projeto.
 
 
+---
+
+# Resumo de Comandos do Git
+
+## Branches
+
+- `git branch`: Lista todas as branches locais.
+- `git branch <nome>`: Cria uma nova branch.
+- `git checkout <nome>`: Muda para a branch indicada.
+- `git checkout -b <nome>`: Cria e já muda para a nova branch (atalho dos dois acima).
+- `git branch -d <nome>`: Deleta uma branch local (só funciona se já foi mergeada).
+- `git branch -D <nome>`: Força a deleção de uma branch local.
+
+## Commits e histórico
+
+- `git log --oneline`: Mostra o histórico de commits de forma resumida (hash + mensagem).
+- `git status`: Mostra o estado atual dos arquivos (modificados, staged, untracked).
+- `git diff`: Mostra as alterações ainda não commitadas.
+
+## Desfazer commits locais (não enviados ao remoto)
+
+- `git reset --soft HEAD~1`: Desfaz o último commit, mas mantém as alterações no stage (prontas para novo commit).
+- `git reset --mixed HEAD~1`: Desfaz o último commit e tira as alterações do stage (ficam no working directory).
+- `git reset --hard HEAD~1`: Desfaz o último commit e **descarta** as alterações por completo. Use com cuidado!
+
+> Substitua `HEAD~1` por `HEAD~2` para desfazer os 2 últimos commits, e assim por diante.
+
+## Reverter commits já enviados ao remoto (push)
+
+Essa é a forma mais segura quando os commits já foram enviados ao repositório remoto, pois não reescreve o histórico — ela cria um novo commit que desfaz as alterações.
+
+- `git revert HEAD`: Cria um commit que reverte o último commit enviado.
+- `git revert HEAD~1..HEAD`: Reverte os 2 últimos commits (cria um commit de reversão para cada um).
+- `git revert <hash>`: Reverte um commit específico pelo seu hash (obtido via `git log --oneline`).
+
+Após o revert, envie ao remoto normalmente:
+```
+git push
+```
+
+> **Dica:** Prefira `git revert` ao `git reset` quando os commits já foram enviados ao remoto, para não causar conflitos com outros desenvolvedores.
+
+## Sincronização com o remoto
+
+- `git fetch`: Busca as atualizações do remoto sem aplicar ao branch local.
+- `git pull`: Busca e já aplica as atualizações do remoto no branch atual.
+- `git push`: Envia os commits locais para o remoto.
+- `git push -u origin <nome>`: Envia uma nova branch local para o remoto e configura o tracking.
 
