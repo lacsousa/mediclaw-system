@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediClaw — Assistente de Apoio Clínico com IA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* @MIRA:THEME:START */
+        :root {
+            --mira-primary: #06B6D4;
+            --mira-bg: #000000;
+            --mira-text: #ffffff;
+            --mira-text-soft: rgba(255, 255, 255, 0.70);
+            --mira-text-softer: rgba(255, 255, 255, 0.50);
+            --mira-card-bg: rgba(255, 255, 255, 0.05);
+            --mira-card-border: rgba(255, 255, 255, 0.10);
+            --mira-glow-soft: rgba(6, 182, 212, 0.15);
+            --mira-glow-strong: rgba(6, 182, 212, 0.25);
+            --mira-icon-bg: rgba(6, 182, 212, 0.15);
+            --mira-icon-border: rgba(6, 182, 212, 0.30);
+            --mira-pill-bg: rgba(255, 255, 255, 0.04);
+            --mira-pill-border: rgba(255, 255, 255, 0.08);
+            --mira-stage-glow: rgba(6, 182, 212, 0.06);
+            --mira-accent-2: #5DD0E3;
+        }
+        body { background: var(--mira-bg); min-height: 100vh; color: var(--mira-text); font-family: 'Inter', sans-serif; }
+        .primary-color { color: var(--mira-primary); }
+        .glass-card {
+            background: var(--mira-card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--mira-card-border);
+            box-shadow: 0 10px 30px var(--mira-glow-soft);
+            transition: all 0.3s ease;
+            border-radius: 0.75rem;
+        }
+        .glass-card:hover { transform: translateY(-6px); box-shadow: 0 20px 40px var(--mira-glow-strong); }
+        .icon-hero {
+            width: 48px; height: 48px; border-radius: 14px; display: flex; flex: 0 0 auto;
+            align-items: center; justify-content: center;
+            background: var(--mira-icon-bg); border: 1px solid var(--mira-icon-border);
+        }
+        .attribute-pill {
+            background: var(--mira-pill-bg); border: 1px solid var(--mira-pill-border);
+            transition: all 0.25s ease; border-radius: 9999px;
+        }
+        .attribute-pill:hover { background: var(--mira-icon-bg); border-color: var(--mira-icon-border); transform: translateY(-2px); }
+        .anim-stage {
+            width: 100%; aspect-ratio: 16/9;
+            background: radial-gradient(circle at 50% 50%, var(--mira-stage-glow), transparent 70%);
+            border-radius: 8px; overflow: hidden; position: relative;
+        }
+        .anim-stage svg { display: block; width: 100%; height: 100%; }
+        .replay-btn {
+            position: absolute; top: 12px; right: 12px; z-index: 10;
+            background: var(--mira-pill-bg); border: 1px solid var(--mira-pill-border);
+            color: var(--mira-text-soft); border-radius: 9999px;
+            padding: 6px 14px; font-size: 12px; cursor: pointer; transition: all 0.25s ease;
+        }
+        .replay-btn:hover { background: var(--mira-icon-bg); color: var(--mira-primary); }
+        .text-soft { color: var(--mira-text-soft); }
+        .text-softer { color: var(--mira-text-softer); }
+        @keyframes mira-pulse { 0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.08);opacity:.85} }
+        @keyframes mira-shimmer { 0%{background-position:-200% center}100%{background-position:200% center} }
+        /* @MIRA:THEME:END */
+
+        html { scroll-behavior: smooth; }
+        #mira-progress {
+            position: fixed; top: 0; left: 0; height: 3px; width: 0%;
+            background: linear-gradient(90deg, var(--mira-primary), var(--mira-accent-2), var(--mira-primary));
+            background-size: 200% 100%; animation: mira-shimmer 2s linear infinite;
+            z-index: 9999; transition: width 0.1s linear; box-shadow: 0 0 10px var(--mira-glow-strong);
+        }
+        #mira-next {
+            position: fixed; bottom: 32px; right: 32px; width: 48px; height: 48px; border-radius: 50%;
+            background: var(--mira-primary); color: var(--mira-bg);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; border: none; opacity: 0; transform: translateY(20px);
+            transition: all 0.3s ease; z-index: 9998; box-shadow: 0 4px 20px var(--mira-glow-strong);
+        }
+        #mira-next.visible { opacity: 1; transform: translateY(0); }
+        #mira-next:hover { transform: translateY(-3px) scale(1.1); }
+        .badge-ok {
+            background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.30);
+            color: var(--mira-primary); border-radius: 9999px; font-size: 11px; padding: 2px 10px; font-weight: 600;
+            display: inline-block; transition: transform 0.3s ease;
+        }
+        .badge-bom {
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.65); border-radius: 9999px; font-size: 11px; padding: 2px 10px; font-weight: 600;
+            display: inline-block;
+        }
+        .cta-breathe {
+            background: radial-gradient(ellipse at 50% 60%, var(--mira-glow-strong), transparent 65%);
+            animation: mira-pulse 4s ease-in-out infinite;
+        }
+        .screenshot-frame {
+            border-radius: 8px; border: 1px solid rgba(255,255,255,0.10); overflow: hidden;
+            box-shadow: 0 8px 24px rgba(6,182,212,0.12); transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .screenshot-frame:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 16px 32px rgba(6,182,212,0.22); }
+        .screenshot-frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
+        .title-row { display: flex; align-items: center; gap: 16px; justify-content: center; }
+        .prob-card, .pivot-card, .gr-card, .pf-card { transition: all 0.6s ease; }
+    </style>
+</head>
+<body>
+    <div id="mira-progress"></div>
+
+    <!-- ===== NAVBAR MEDICLAW ===== -->
+    <nav id="mira-navbar" style="position:fixed;top:3px;left:0;right:0;z-index:9997;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,0.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(6,182,212,0.12);transition:opacity 0.4s ease;">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span style="width:30px;height:30px;border-radius:8px;background:rgba(6,182,212,0.15);border:1px solid rgba(6,182,212,0.30);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i data-lucide="stethoscope" style="width:15px;height:15px;color:var(--mira-primary);"></i>
+            </span>
+            <span style="font-family:'Inter',sans-serif;font-weight:900;font-size:15px;letter-spacing:-0.3px;color:#fff;">Medi<span style="color:var(--mira-primary);">Claw</span></span>
+        </div>
+        <span style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:2px;text-transform:uppercase;">Pós-Graduação UFG · Construção de APIs para IA · 2026</span>
+    </nav>
+
+    <div id="mira-slide-counter" style="position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:9998;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;letter-spacing:1.5px;color:rgba(255,255,255,0.45);background:rgba(0,0,0,0.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:5px 12px;pointer-events:none;transition:opacity 0.3s ease;">1 / 1</div>
+
+    <button id="mira-next" aria-label="Próximo slide">
+        <i data-lucide="chevron-down" class="w-6 h-6" id="mira-next-icon"></i>
+    </button>
+
+    <!-- ===== SLIDE 1: ABERTURA ===== -->
+    <section class="min-h-screen flex flex-col items-center justify-center relative overflow-hidden px-6">
+        <div id="capa-stage" class="absolute inset-0 pointer-events-none"></div>
+        <div class="relative z-10 text-center max-w-4xl" data-aos="fade-up">
+            <span class="inline-block px-5 py-2 text-xs font-semibold tracking-widest uppercase mb-10" style="background:rgba(6,182,212,0.18);border:1px solid rgba(6,182,212,0.35);border-radius:9999px;color:var(--mira-primary);">Apresentação Acadêmica</span>
+            <h1 class="font-black leading-none mb-5" style="font-size:clamp(5rem,12vw,9rem);letter-spacing:-3px;">Medi<span class="primary-color">Claw</span></h1>
+            <p class="text-xl text-soft max-w-2xl mx-auto mb-3">Assistente Inteligente de Apoio à Longevidade e Bem-Estar</p>
+            <p class="text-softer text-sm tracking-wide mb-12">Disciplina: Construção de APIs para Inteligência Artificial</p>
+            <div class="flex flex-wrap items-center justify-center gap-3" data-aos="fade-up" data-aos-delay="200">
+                <span class="attribute-pill px-5 py-2 text-sm text-soft">Django 5.2 + DRF</span>
+                <span class="attribute-pill px-5 py-2 text-sm text-soft">RAG + ChromaDB</span>
+                <span class="attribute-pill px-5 py-2 text-sm text-soft">OpenAI / Gemini</span>
+                <span class="attribute-pill px-5 py-2 text-sm text-soft">Next.js</span>
+                <span class="px-5 py-2 text-sm font-bold primary-color" style="background:rgba(6,182,212,0.10);border:1px solid rgba(6,182,212,0.25);border-radius:9999px;">~177 Testes</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SLIDE 2: O PROBLEMA ===== -->
+    <section class="min-h-screen flex flex-col items-center justify-center px-6 py-16">
+        <div class="text-center mb-12" data-aos="fade-up">
+            <div class="title-row mb-4">
+                <div class="icon-hero"><i data-lucide="alert-triangle" class="primary-color w-6 h-6"></i></div>
+                <h2 class="text-5xl font-black text-left">O Médico Se Perde nos Dados.<br>Os Dados Não Conversam.</h2>
+            </div>
+            <p class="text-soft text-lg">Três forças que impedem a evidência de chegar à consulta</p>
+        </div>
+        <div class="grid md:grid-cols-3 gap-6 w-full max-w-5xl">
+            <div class="glass-card p-8 prob-card" data-aos="fade-up" data-aos-delay="100">
+                <div class="icon-hero mb-5"><i data-lucide="layers" class="primary-color w-6 h-6"></i></div>
+                <h3 class="text-xl font-bold mb-3">Complexidade</h3>
+                <p class="text-soft text-sm leading-relaxed">Dados de exames, sinais vitais e hábitos são técnicos, fragmentados e impossíveis de integrar no tempo da consulta.</p>
+            </div>
+            <div class="glass-card p-8 prob-card" data-aos="fade-up" data-aos-delay="200">
+                <div class="icon-hero mb-5"><i data-lucide="sliders-horizontal" class="primary-color w-6 h-6"></i></div>
+                <h3 class="text-xl font-bold mb-3">Generalismo</h3>
+                <p class="text-soft text-sm leading-relaxed">Orientações genéricas ignoram comorbidades, contexto de vida e individualidade biológica do paciente atendido.</p>
+            </div>
+            <div class="glass-card p-8 prob-card" data-aos="fade-up" data-aos-delay="300">
+                <div class="icon-hero mb-5"><i data-lucide="map-pin-off" class="primary-color w-6 h-6"></i></div>
+                <h3 class="text-xl font-bold mb-3">Acesso</h3>
+                <p class="text-soft text-sm leading-relaxed">Consultoria especializada tem barreira de custo e geografia, sobretudo fora de grandes centros urbanos.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SLIDE 3: O QUE É O MEDICLAW ===== -->
+    <section class="min-h-screen flex flex-col items-center justify-center px-6 py-16">
+        <div class="text-center mb-12" data-aos="fade-up">
+            <div class="title-row mb-4">
+                <div class="icon-hero"><i data-lucide="stethoscope" class="primary-color w-6 h-6"></i></div>
+                <h2 class="text-5xl font-black text-left">O Colega de Plantão<br><span class="primary-color">Que Nunca Cansa</span></h2>
+            </div>
+            <p class="text-soft text-lg">Plataforma web de apoio à decisão clínica com LLM + RAG</p>
+        </div>
+        <div class="glass-card w-full max-w-5xl p-10" data-aos="fade-up" data-aos-delay="100">
+            <ul class="space-y-6">
+                <li class="flex gap-5 items-start" data-aos="fade-right" data-aos-delay="150">
+                    <div class="icon-hero shrink-0"><i data-lucide="message-circle" class="primary-color w-5 h-5"></i></div>
+                    <div>
+                        <p class="font-bold text-lg">Médico descreve o paciente em linguagem natural durante a consulta</p>
+                        <p class="text-soft text-sm mt-1">Sem formulários. O assistente extrai dados automaticamente da conversa.</p>
+                    </div>
+                </li>
+                <li class="flex gap-5 items-start" data-aos="fade-right" data-aos-delay="250">
+                    <div class="icon-hero shrink-0"><i data-lucide="brain-circuit" class="primary-color w-5 h-5"></i></div>
+                    <div>
+                        <p class="font-bold text-lg">IA retorna hipóteses diferenciais com embasamento em evidências indexadas</p>
+                        <p class="text-soft text-sm mt-1">RAG busca na base de conhecimento proprietária antes de chamar o LLM.</p>
+                    </div>
+                </li>
+                <li class="flex gap-5 items-start" data-aos="fade-right" data-aos-delay="350">
+                    <div class="icon-hero shrink-0"><i data-lucide="database" class="primary-color w-5 h-5"></i></div>
+                    <div>
+                        <p class="font-bold text-lg">Dados biométricos capturados e persistidos automaticamente</p>
+                        <p class="text-soft text-sm mt-1">Peso, sono, atividade e nutrição extraídos via regex + LLM da conversa.</p>
+                    </div>
+                </li>
+                <li class="flex gap-5 items-start" data-aos="fade-right" data-aos-delay="450">
+                    <div class="icon-hero shrink-0"><i data-lucide="shield-check" class="primary-color w-5 h-5"></i></div>
+                    <div>
+                        <p class="font-bold text-lg">A decisão e a responsabilidade são sempre do médico assistente</p>
+                        <p class="text-soft text-sm mt-1">Disclaimer obrigatório em toda resposta. Guardrails bloqueiam diagnóstico e prescrição.</p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- ===== SLIDE 4: PIVOT DE ESCOPO ===== -->
+    <section class="min-h-screen flex flex-col items-center justify-center px-6 py-16">
+        <div class="text-center mb-12" data-aos="fade-up">
+            <div class="title-row mb-4">
+                <div class="icon-hero"><i data-lucide="git-branch" class="primary-color w-6 h-6"></i></div>
+                <h2 class="text-5xl font-black text-left">Começamos com Wellness.<br><span class="primary-color">Terminamos com Clínica.</span></h2>
+            </div>
+            <p class="text-soft text-lg">Por que mudamos de direção no meio do caminho</p>
+        </div>
+        <div class="grid md:grid-cols-2 gap-8 w-full max-w-5xl items-stretch">
+            <div id="pivot-a" class="glass-card p-10 pivot-card" data-aos="fade-right">
+                <div class="icon-hero mb-6"><i data-lucide="heart-pulse" class="primary-color w-6 h-6"></i></div>
+                <p class="text-softer text-xs tracking-widest uppercase mb-3">Proposta original</p>
+                <h3 class="text-2xl font-bold mb-5">App de longevidade</h3>
+                <ul class="space-y-3 text-soft text-sm">
+                    <li class="flex gap-3"><i data-lucide="user" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i> Usuário final como interlocutor</li>
+                    <li class="flex gap-3"><i data-lucide="form-input" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i> Formulários manuais de logs biométricos</li>
+                    <li class="flex gap-3"><i data-lucide="activity" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i> Foco em bem-estar e longevidade</li>
+                    <li class="flex gap-3"><i data-lucide="cloud" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i> ChromaDB ou Pinecone como vector store</li>
+                </ul>
+            </div>
+            <div id="pivot-b" class="glass-card p-10 pivot-card" data-aos="fade-left">
+                <div class="icon-hero mb-6"><i data-lucide="stethoscope" class="primary-color w-6 h-6"></i></div>
+                <p class="text-softer text-xs tracking-widest uppercase mb-3">O que entregamos</p>
+                <h3 class="text-2xl font-bold mb-5">CDSS clínico</h3>
+                <ul class="space-y-3 text-soft text-sm">
+                    <li class="flex gap-3"><i data-lucide="check" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i> Médico autenticado como interlocutor</li>
+                    <li class="flex gap-3"><i data-lucide="check" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i> Captura conversacional automática via chat</li>
+                    <li class="flex gap-3"><i data-lucide="check" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i> Apoio à decisão clínica com guardrails éticos</li>
+                    <li class="flex gap-3"><i data-lucide="check" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i> ChromaDB local persistido em disco</li>
+                </ul>
+                <div class="mt-6 attribute-pill inline-flex items-center gap-2 px-4 py-2 text-xs">
+                    <i data-lucide="info" class="primary-color w-3 h-3"></i>
+                    Pivot justificado por coerência ético-legal
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SLIDE 5: DEMO — SCREENSHOTS ===== -->
+    <section class="min-h-screen flex flex-col items-center justify-center px-6 py-16">
+        <div class="text-center mb-10" data-aos="fade-up">
+            <div class="title-row mb-4">
+                <div class="icon-hero"><i data-lucide="monitor" class="primary-color w-6 h-6"></i></div>
+                <h2 class="text-5xl font-black text-left">Da Landing à Consulta<br><span class="primary-color">em 4 Telas</span></h2>
+            </div>
+            <p class="text-soft text-lg">localhost:3000 — sistema em execução local</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4 w-full max-w-5xl">
+            <div class="screenshot-frame" data-aos="zoom-in" data-aos-delay="100">
+                <img src="assets/screenshot-landing.png" alt="Landing page do MediClaw">
+            </div>
+            <div class="screenshot-frame" data-aos="zoom-in" data-aos-delay="200">
+                <img src="assets/screenshot-login.png" alt="Tela de login">
+            </div>
+            <div class="screenshot-frame" data-aos="zoom-in" data-aos-delay="300">
+                <img src="assets/screenshot-conversas.png" alt="Lista de conversas">
+            </div>
+            <div class="screenshot-frame" data-aos="zoom-in" data-aos-delay="400">
+                <img src="assets/screenshot-chat.png" alt="Chat com resposta da IA">
+            </div>
+        </div>
+        <p class="text-softer text-sm mt-6 text-center" data-aos="fade-up" data-aos-delay="500">Identidade visual do próprio MediClaw: verde ciano, fundo claro, sidebar de navegação estruturada</p>
+    </section>
+
+    <!-- ===== SLIDE 6: CTA ===== -->
+    <section class="min-h-screen flex flex-col items-center justify-center relative overflow-hidden px-6">
+        <div class="cta-breathe absolute inset-0 pointer-events-none"></div>
+        <div class="relative z-10 text-center max-w-3xl" data-aos="zoom-in">
+            <div class="icon-hero mx-auto mb-8" style="width:72px;height:72px;border-radius:20px;">
+                <i data-lucide="github" class="primary-color w-9 h-9"></i>
+            </div>
+            <h2 class="text-6xl font-black mb-4">Código Aberto.<br><span class="primary-color">Acesso Imediato.</span></h2>
+            <p class="text-xl text-soft mb-10">Veja a arquitetura, os 137 testes e o pipeline de IA no repositório público</p>
+            <div class="flex flex-wrap items-center justify-center gap-4">
+                <a href="https://github.com/lacsousa/mediclaw-system" target="_blank"
+                   class="attribute-pill px-8 py-4 text-base font-bold hover:scale-105 transition-transform cursor-pointer">
+                    <i data-lucide="github" class="inline w-5 h-5 mr-2 primary-color"></i>github.com/lacsousa/mediclaw-system
+                </a>
+                <span class="attribute-pill px-6 py-4 text-base">
+                    <i data-lucide="file-code" class="inline w-5 h-5 mr-2 primary-color"></i>Swagger em /swagger/
+                </span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SLIDE 7: ARQUITETURA ===== -->
+    <section class="min-h-screen flex flex-col items-center justify-center px-6 py-16">
+        <div class="text-center mb-10" data-aos="fade-up">
+            <div class="title-row mb-4">
+                <div class="icon-hero"><i data-lucide="layers" class="primary-color w-6 h-6"></i></div>
+                <h2 class="text-5xl font-black text-left">Quatro Camadas.<br><span class="primary-color">Zero Acoplamento.</span></h2>
+            </div>
+            <p class="text-soft text-lg">Next.js 16 · Django 5.2 · PostgreSQL 16 + ChromaDB · OpenAI / Gemini</p>
+        </div>
+        <div class="glass-card w-full max-w-5xl p-8 relative" data-aos="fade-up" data-aos-delay="100">
+            <button class="replay-btn" id="arq-replay-btn">↻ replay</button>
+            <div id="arq-stage" class="anim-stage"></div>
+        </div>
+    </section>
+
+    <!-- ===== SLIDE 8: PIPELINE DE IA ===== -->
+    <section class="min-h-screen flex flex-col items-center justify-center px-6 py-16">
+        <div class="text-center mb-10" data-aos="fade-up">
+            <div class="title-row mb-4">
+                <div class="icon-hero"><i data-lucide="zap" class="primary-color w-6 h-6"></i></div>
+                <h2 class="text-5xl font-black text-left">O Que Acontece<br><span class="primary-color">Antes da Resposta Chegar</span></h2>
+            </div>
+            <p class="text-soft text-lg">7 etapas em milissegundos — do input do médico à resposta verificada</p>
+        </div>
+        <div class="glass-card w-full max-w-5xl p-8 relative" data-aos="fade-up" data-aos-delay="100">
+            <button class="replay-btn" id="pipeline-replay-btn">↻ replay</button>
+            <div id="pipeline-stage" class="anim-stage"></div>
+        </div>
+        <p class="text-softer mt-6 text-center text-sm" data-aos="fade-up" data-aos-delay="200">Guardrails pré e pós-LLM: TP=100%, FP=0% em 33 prompts de avaliação · Custo zero (sem chamada de API)</p>
+    </section>
+
+    <!-- ===== SLIDE 9: GUARDRAILS E RAG ===== -->
+    <section class="min-h-screen flex flex-col items-center justify-center px-6 py-16">
+        <div class="text-center mb-12" data-aos="fade-up">
+            <div class="title-row mb-4">
+                <div class="icon-hero"><i data-lucide="shield-check" class="primary-color w-6 h-6"></i></div>
+                <h2 class="text-5xl font-black text-left">A IA Que Sabe<br><span class="primary-color">Quando Parar</span></h2>
+            </div>
+            <p class="text-soft text-lg">Guardrails bloqueiam antes do LLM. RAG fundamenta depois.</p>
+        </div>
+        <div class="grid md:grid-cols-2 gap-8 w-full max-w-5xl items-stretch">
+            <div id="gr-a" class="glass-card p-10 gr-card" data-aos="fade-right">
+                <div class="icon-hero mb-6"><i data-lucide="shield-alert" class="primary-color w-6 h-6"></i></div>
+                <h3 class="text-2xl font-bold mb-2">Guardrails</h3>
+                <p class="text-softer text-xs mb-5">determinísticos, em português</p>
+                <ul class="space-y-3 text-soft text-sm">
+                    <li class="flex gap-3"><i data-lucide="x-circle" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i> Bloqueia urgência e emergência simulada</li>
+                    <li class="flex gap-3"><i data-lucide="x-circle" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i> Bloqueia pedidos de diagnóstico fechado</li>
+                    <li class="flex gap-3"><i data-lucide="x-circle" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i> Bloqueia pedidos de prescrição de medicamento</li>
+                    <li class="flex gap-3"><i data-lucide="x-circle" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i> Verifica saída do LLM também (pós-geração)</li>
+                </ul>
+                <div class="mt-6 flex gap-2 flex-wrap">
+                    <span class="badge-ok">TP = 100%</span>
+                    <span class="badge-ok">FP = 0%</span>
+                    <span class="badge-bom">33 prompts testados</span>
+                    <span class="badge-bom">Custo zero</span>
+                </div>
+            </div>
+            <div id="gr-b" class="glass-card p-10 gr-card" data-aos="fade-left">
+                <div class="icon-hero mb-6"><i data-lucide="search" class="primary-color w-6 h-6"></i></div>
+                <h3 class="text-2xl font-bold mb-2">RAG</h3>
+                <p class="text-softer text-xs mb-5">Retrieval-Augmented Generation</p>
+                <ul class="space-y-3 text-soft text-sm">
+                    <li class="flex gap-3"><i data-lucide="upload" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i> Upload PDF/TXT/MD até 10 MB</li>
+                    <li class="flex gap-3"><i data-lucide="scissors" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i> Chunking: 1.000 chars, overlap 200</li>
+                    <li class="flex gap-3"><i data-lucide="cpu" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i> Embeddings: text-embedding-3-small</li>
+                    <li class="flex gap-3"><i data-lucide="database" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i> ChromaDB — similaridade coseno ≥ 0,75</li>
+                </ul>
+                <div class="mt-6 flex gap-2 flex-wrap">
+                    <span class="badge-ok">Citações via SSE</span>
+                    <span class="badge-bom">Top-K semântico</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SLIDE 10: SEGURANÇA E ÉTICA ===== -->
+    <section class="min-h-screen flex flex-col items-center justify-center px-6 py-16">
+        <div class="text-center mb-12" data-aos="fade-up">
+            <div class="title-row mb-4">
+                <div class="icon-hero"><i data-lucide="lock" class="primary-color w-6 h-6"></i></div>
+                <h2 class="text-5xl font-black text-left">Seis Camadas de Controle.<br><span class="primary-color">Uma Responsabilidade.</span></h2>
+            </div>
+            <p class="text-soft text-lg">A responsabilidade clínica permanece sempre com o médico assistente</p>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-5xl">
+            <div class="glass-card p-7" data-aos="zoom-in" data-aos-delay="100">
+                <div class="icon-hero mb-4"><i data-lucide="key" class="primary-color w-5 h-5"></i></div>
+                <h4 class="font-bold mb-2">JWT</h4>
+                <p class="text-soft text-sm">Access 30 min · Refresh 1 dia · Bearer header</p>
+            </div>
+            <div class="glass-card p-7" data-aos="zoom-in" data-aos-delay="180">
+                <div class="icon-hero mb-4"><i data-lucide="users" class="primary-color w-5 h-5"></i></div>
+                <h4 class="font-bold mb-2">Multi-tenancy</h4>
+                <p class="text-soft text-sm">Cada médico acessa só seus pacientes via <code class="text-xs primary-color">doctor=request.user</code></p>
+            </div>
+            <div class="glass-card p-7" data-aos="zoom-in" data-aos-delay="260">
+                <div class="icon-hero mb-4"><i data-lucide="gauge" class="primary-color w-5 h-5"></i></div>
+                <h4 class="font-bold mb-2">Rate Limiting</h4>
+                <p class="text-soft text-sm">Usuário 60/min · Chat 10 msg/min</p>
+            </div>
+            <div class="glass-card p-7" data-aos="zoom-in" data-aos-delay="340">
+                <div class="icon-hero mb-4"><i data-lucide="shield" class="primary-color w-5 h-5"></i></div>
+                <h4 class="font-bold mb-2">CORS Restrito</h4>
+                <p class="text-soft text-sm">Origens explícitas em <code class="text-xs primary-color">CORS_ALLOWED_ORIGINS</code> — sem curinga</p>
+            </div>
+            <div class="glass-card p-7" data-aos="zoom-in" data-aos-delay="420">
+                <div class="icon-hero mb-4"><i data-lucide="alert-circle" class="primary-color w-5 h-5"></i></div>
+                <h4 class="font-bold mb-2">Disclaimer</h4>
+                <p class="text-soft text-sm">Obrigatório e deduplicado em toda resposta clínica da IA</p>
+            </div>
+            <div class="glass-card p-7" data-aos="zoom-in" data-aos-delay="500">
+                <div class="icon-hero mb-4"><i data-lucide="file-check" class="primary-color w-5 h-5"></i></div>
+                <h4 class="font-bold mb-2">LGPD</h4>
+                <p class="text-soft text-sm">Aceite de termos obrigatório no cadastro · <code class="text-xs primary-color">accepted_terms_at</code></p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SLIDE 11: QUALIDADE E TESTES ===== -->
+    <section class="min-h-screen flex flex-col items-center justify-center px-6 py-16">
+        <div class="text-center mb-12" data-aos="fade-up">
+            <div class="title-row mb-4">
+                <div class="icon-hero"><i data-lucide="check-circle-2" class="primary-color w-6 h-6"></i></div>
+                <h2 class="text-5xl font-black text-left">177 Testes.<br><span class="primary-color">PostgreSQL Real. Sem Atalhos.</span></h2>
+            </div>
+            <p class="text-soft text-lg">Cobertura de guardrails a autenticação, do backend ao frontend</p>
+        </div>
+        <div class="glass-card w-full max-w-5xl p-10" data-aos="fade-up" data-aos-delay="100">
+            <ul class="space-y-6">
+                <li class="flex gap-5 items-start" data-aos="fade-right" data-aos-delay="150">
+                    <div class="icon-hero shrink-0"><i data-lucide="server" class="primary-color w-5 h-5"></i></div>
+                    <div>
+                        <p class="font-bold">137 testes backend com pytest + PostgreSQL 16 real</p>
+                        <p class="text-soft text-sm mt-1">Não SQLite. O CI roda contra banco real para garantir fidelidade ao ambiente de produção.</p>
+                    </div>
+                </li>
+                <li class="flex gap-5 items-start" data-aos="fade-right" data-aos-delay="230">
+                    <div class="icon-hero shrink-0"><i data-lucide="monitor-check" class="primary-color w-5 h-5"></i></div>
+                    <div>
+                        <p class="font-bold">~40 testes frontend com Vitest + Testing Library</p>
+                        <p class="text-soft text-sm mt-1">Formulários de auth, componentes de chat, SSE, disclaimer e contexto de autenticação.</p>
+                    </div>
+                </li>
+                <li class="flex gap-5 items-start" data-aos="fade-right" data-aos-delay="310">
+                    <div class="icon-hero shrink-0"><i data-lucide="shield-check" class="primary-color w-5 h-5"></i></div>
+                    <div>
+                        <p class="font-bold">22 testes de guardrails: urgência, diagnóstico, prescrição, gibberish, output LLM</p>
+                        <p class="text-soft text-sm mt-1">Eval set com 33 prompts: TP=100%, FP=0%.</p>
+                    </div>
+                </li>
+                <li class="flex gap-5 items-start" data-aos="fade-right" data-aos-delay="390">
+                    <div class="icon-hero shrink-0"><i data-lucide="git-commit-vertical" class="primary-color w-5 h-5"></i></div>
+                    <div>
+                        <p class="font-bold">CI GitLab: lint (Black) + suite completa em cada push</p>
+                        <p class="text-soft text-sm mt-1">Pre-commit hooks com Black. Conventional Commits no histórico.</p>
+                    </div>
+                </li>
+                <li class="flex gap-5 items-start" data-aos="fade-right" data-aos-delay="470">
+                    <div class="icon-hero shrink-0"><i data-lucide="book-open" class="primary-color w-5 h-5"></i></div>
+                    <div>
+                        <p class="font-bold">Swagger UI + ReDoc integrados — documentação interativa em /swagger/</p>
+                        <p class="text-soft text-sm mt-1">Gerado via drf-yasg. PRD e ADRs em specs/.</p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- ===== SLIDE BMAD: DOCUMENTAÇÃO ===== -->
+    <section class="min-h-screen flex flex-col items-center justify-center px-6 py-16">
+        <div class="text-center mb-12" data-aos="fade-up">
+            <div class="title-row mb-4">
+                <div class="icon-hero"><i data-lucide="book-open" class="primary-color w-6 h-6"></i></div>
+                <h2 class="text-5xl font-black text-left">Documentação —<br><span class="primary-color">Padrão BMAD</span></h2>
+            </div>
+            <p class="text-soft text-lg max-w-3xl mx-auto">Toda a documentação segue o padrão <span class="primary-color font-semibold">BMAD (Business, Model, Architecture, Data)</span>, garantindo contexto completo para desenvolvedores e agentes de IA.</p>
+        </div>
+        <div class="w-full max-w-5xl space-y-6">
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="glass-card p-6" data-aos="fade-right" data-aos-delay="80">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="icon-hero shrink-0" style="width:36px;height:36px;border-radius:10px;"><i data-lucide="file-text" class="primary-color w-4 h-4"></i></div>
+                        <h4 class="font-bold text-base">PRD.md</h4>
+                    </div>
+                    <p class="text-softer text-sm">Requisitos de produto e regras de negócio</p>
+                </div>
+                <div class="glass-card p-6" data-aos="fade-left" data-aos-delay="160">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="icon-hero shrink-0" style="width:36px;height:36px;border-radius:10px;"><i data-lucide="layout" class="primary-color w-4 h-4"></i></div>
+                        <h4 class="font-bold text-base">ARCHITECTURE.md</h4>
+                    </div>
+                    <p class="text-softer text-sm">10 ADRs com decisões arquiteturais documentadas</p>
+                </div>
+                <div class="glass-card p-6" data-aos="fade-right" data-aos-delay="240">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="icon-hero shrink-0" style="width:36px;height:36px;border-radius:10px;"><i data-lucide="settings" class="primary-color w-4 h-4"></i></div>
+                        <h4 class="font-bold text-base">PROJECT-CONTEXT.md</h4>
+                    </div>
+                    <p class="text-softer text-sm">Contexto para agentes de IA e desenvolvedores</p>
+                </div>
+                <div class="glass-card p-6" data-aos="fade-left" data-aos-delay="320">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="icon-hero shrink-0" style="width:36px;height:36px;border-radius:10px;"><i data-lucide="list-checks" class="primary-color w-4 h-4"></i></div>
+                        <h4 class="font-bold text-base">TASKS.md</h4>
+                    </div>
+                    <p class="text-softer text-sm">Épicos e tarefas de implementação sequenciais</p>
+                </div>
+            </div>
+            <div class="glass-card p-6" data-aos="fade-up" data-aos-delay="400">
+                <p class="text-xs font-semibold tracking-widest uppercase text-softer mb-4">Padrão Provider — Alternância de Modelos</p>
+                <div style="background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:16px 20px;font-family:'Courier New',monospace;font-size:13px;line-height:1.7;">
+                    <span style="color:#4ADE80;">LLM_PROVIDER="openai"</span><span class="text-softer"> # GPT-4o-mini + text-embedding-3-small</span><br>
+                    <span style="color:#4ADE80;">LLM_PROVIDER="gemini"</span><span class="text-softer"> # Gemini Flash</span>
+                </div>
+                <p class="text-softer text-xs mt-4">Troca de provedor sem nenhuma mudança de código — interface <code class="primary-color text-xs">LLMProvider</code> em <code class="primary-color text-xs">providers/base.py</code></p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SLIDE 12: 9 CRITÉRIOS ===== -->
+    <section class="min-h-screen flex flex-col items-center justify-center px-6 py-16">
+        <div class="text-center mb-12" data-aos="fade-up">
+            <div class="title-row mb-4">
+                <div class="icon-hero"><i data-lucide="clipboard-check" class="primary-color w-6 h-6"></i></div>
+                <h2 class="text-5xl font-black text-left">9 Critérios.<br><span class="primary-color">9 Entregas.</span></h2>
+            </div>
+            <p class="text-soft text-lg">Avaliação critério a critério — todos os requisitos da disciplina atendidos</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-5xl">
+            <div class="glass-card p-6" data-aos="zoom-in" data-aos-delay="80">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="icon-hero shrink-0" style="width:36px;height:36px;border-radius:10px;"><i data-lucide="brain-circuit" class="primary-color w-4 h-4"></i></div>
+                    <h4 class="font-bold text-base">Funcionalidade de IA</h4>
+                </div>
+                <span class="badge-ok">Excelente</span>
+                <p class="text-softer text-sm mt-2">4 endpoints distintos + streaming SSE</p>
+            </div>
+            <div class="glass-card p-6" data-aos="zoom-in" data-aos-delay="140">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="icon-hero shrink-0" style="width:36px;height:36px;border-radius:10px;"><i data-lucide="check-square" class="primary-color w-4 h-4"></i></div>
+                    <h4 class="font-bold text-base">Validação de dados</h4>
+                </div>
+                <span class="badge-ok">Excelente</span>
+                <p class="text-softer text-sm mt-2">4 camadas: serializer, guardrail, MIME, limite</p>
+            </div>
+            <div class="glass-card p-6" data-aos="zoom-in" data-aos-delay="200">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="icon-hero shrink-0" style="width:36px;height:36px;border-radius:10px;"><i data-lucide="alert-octagon" class="primary-color w-4 h-4"></i></div>
+                    <h4 class="font-bold text-base">Tratamento de erros</h4>
+                </div>
+                <span class="badge-ok">Excelente</span>
+                <p class="text-softer text-sm mt-2">Envelope <code class="text-sm">{data, error, meta}</code> padronizado</p>
+            </div>
+            <div class="glass-card p-6" data-aos="zoom-in" data-aos-delay="260">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="icon-hero shrink-0" style="width:36px;height:36px;border-radius:10px;"><i data-lucide="scroll-text" class="primary-color w-4 h-4"></i></div>
+                    <h4 class="font-bold text-base">Logs</h4>
+                </div>
+                <span class="badge-bom">Bom</span>
+                <p class="text-softer text-sm mt-2">structlog JSON; audit stub documentado</p>
+            </div>
+            <div class="glass-card p-6" data-aos="zoom-in" data-aos-delay="320">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="icon-hero shrink-0" style="width:36px;height:36px;border-radius:10px;"><i data-lucide="shield" class="primary-color w-4 h-4"></i></div>
+                    <h4 class="font-bold text-base">Segurança</h4>
+                </div>
+                <span class="badge-bom">Bom</span>
+                <p class="text-softer text-sm mt-2">JWT + rate limiting + CORS + multi-tenancy</p>
+            </div>
+            <div class="glass-card p-6" data-aos="zoom-in" data-aos-delay="380">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="icon-hero shrink-0" style="width:36px;height:36px;border-radius:10px;"><i data-lucide="git-branch" class="primary-color w-4 h-4"></i></div>
+                    <h4 class="font-bold text-base">Versionamento</h4>
+                </div>
+                <span class="badge-ok">Excelente</span>
+                <p class="text-softer text-sm mt-2">/api/v1/ + CI GitLab em cada push</p>
+            </div>
+            <div class="glass-card p-6" data-aos="zoom-in" data-aos-delay="440">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="icon-hero shrink-0" style="width:36px;height:36px;border-radius:10px;"><i data-lucide="book-open-check" class="primary-color w-4 h-4"></i></div>
+                    <h4 class="font-bold text-base">Qualidade e documentação</h4>
+                </div>
+                <span class="badge-ok">Excelente</span>
+                <p class="text-softer text-sm mt-2">137 testes + Swagger + README + ADRs</p>
+            </div>
+            <div class="glass-card p-6" data-aos="zoom-in" data-aos-delay="500">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="icon-hero shrink-0" style="width:36px;height:36px;border-radius:10px;"><i data-lucide="repeat" class="primary-color w-4 h-4"></i></div>
+                    <h4 class="font-bold text-base">Reprodutibilidade</h4>
+                </div>
+                <span class="badge-bom">Bom</span>
+                <p class="text-softer text-sm mt-2">README + .env.example + DevContainer</p>
+            </div>
+            <div class="glass-card p-6" data-aos="zoom-in" data-aos-delay="560">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="icon-hero shrink-0" style="width:36px;height:36px;border-radius:10px;"><i data-lucide="github" class="primary-color w-4 h-4"></i></div>
+                    <h4 class="font-bold text-base">Repositório público</h4>
+                </div>
+                <span class="badge-ok">Confirmado</span>
+                <p class="text-softer text-sm mt-2">github.com/lacsousa/mediclaw-system</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SLIDE 13: PONTOS FORTES ===== -->
+    <section class="min-h-screen flex flex-col items-center justify-center px-6 py-16">
+        <div class="text-center mb-12" data-aos="fade-up">
+            <div class="title-row mb-4">
+                <div class="icon-hero"><i data-lucide="star" class="primary-color w-6 h-6"></i></div>
+                <h2 class="text-5xl font-black text-left">Cinco Pontos Fortes.<br><span class="primary-color">Duas Lacunas Honestas.</span></h2>
+            </div>
+            <p class="text-soft text-lg italic">"O projeto demonstra domínio avançado dos conceitos da disciplina." — avaliação técnica</p>
+        </div>
+        <div class="grid md:grid-cols-2 gap-8 w-full max-w-5xl items-stretch">
+            <div id="pf-a" class="glass-card p-10 pf-card" data-aos="fade-right">
+                <div class="icon-hero mb-6"><i data-lucide="star" class="primary-color w-6 h-6"></i></div>
+                <h3 class="text-2xl font-bold mb-5">Destaques</h3>
+                <ul class="space-y-4 text-soft text-sm">
+                    <li class="flex gap-3"><i data-lucide="check" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i> Pipeline completo: guardrails pré/pós-LLM, RAG, captura conversacional, streaming SSE</li>
+                    <li class="flex gap-3"><i data-lucide="check" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i> 137 testes com PostgreSQL real — não SQLite</li>
+                    <li class="flex gap-3"><i data-lucide="check" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i> Documentação: README + PRD + ADRs + Swagger</li>
+                    <li class="flex gap-3"><i data-lucide="check" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i> Provedores LLM intercambiáveis via variável de ambiente, sem mudança de código</li>
+                    <li class="flex gap-3"><i data-lucide="check" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i> Vai além do mínimo em todos os critérios técnicos</li>
+                </ul>
+            </div>
+            <div id="pf-b" class="glass-card p-10 pf-card" data-aos="fade-left">
+                <div class="icon-hero mb-6"><i data-lucide="alert-triangle" class="primary-color w-6 h-6"></i></div>
+                <h3 class="text-2xl font-bold mb-5">Lacunas reconhecidas</h3>
+                <ul class="space-y-5 text-soft text-sm">
+                    <li class="flex gap-3">
+                        <i data-lucide="info" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i>
+                        <div>
+                            <strong class="text-white">Audit trail stub</strong><br>
+                            Eventos não persistidos em banco — E7 documentado como trabalho futuro.
+                        </div>
+                    </li>
+                    <li class="flex gap-3">
+                        <i data-lucide="info" class="primary-color w-4 h-4 shrink-0 mt-0.5"></i>
+                        <div>
+                            <strong class="text-white">JWT via query string no SSE</strong><br>
+                            Limitação do EventSource nativo. Mitigação: cookie httpOnly ou proxy WebSocket.
+                        </div>
+                    </li>
+                </ul>
+                <div class="mt-8 attribute-pill inline-flex items-center gap-2 px-4 py-2 text-xs">
+                    <i data-lucide="book-open" class="primary-color w-3 h-3"></i>
+                    Ambas documentadas no README com mitigação futura
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SLIDE 14: COMPARATIVO ===== -->
+    <section class="min-h-screen flex flex-col items-center justify-center px-6 py-16">
+        <div class="text-center mb-12" data-aos="fade-up">
+            <div class="title-row mb-4">
+                <div class="icon-hero"><i data-lucide="trophy" class="primary-color w-6 h-6"></i></div>
+                <h2 class="text-5xl font-black text-left">O Que a Disciplina Pede<br><span class="primary-color">vs. O Que Entregamos</span></h2>
+            </div>
+            <p class="text-soft text-lg">Em todos os critérios, o MediClaw vai além do mínimo exigido</p>
+        </div>
+        <div class="glass-card w-full max-w-5xl overflow-hidden" data-aos="fade-up" data-aos-delay="100">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr style="background:rgba(6,182,212,0.10);border-bottom:1px solid rgba(6,182,212,0.20);">
+                        <th class="text-left p-5 font-bold">Critério</th>
+                        <th class="text-left p-5 font-bold text-soft">Mínimo exigido</th>
+                        <th class="text-left p-5 font-bold primary-color">MediClaw</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="border-b border-white/5 hover:bg-white/5 transition-colors tabela-row">
+                        <td class="p-5 font-medium">Endpoints com IA</td>
+                        <td class="p-5 text-soft">≥ 2</td>
+                        <td class="p-5 primary-color font-bold">4 endpoints distintos + streaming SSE</td>
+                    </tr>
+                    <tr class="border-b border-white/5 hover:bg-white/5 transition-colors tabela-row">
+                        <td class="p-5 font-medium">Testes automatizados</td>
+                        <td class="p-5 text-soft">Não especificado</td>
+                        <td class="p-5 primary-color font-bold">177 (137 backend + ~40 frontend)</td>
+                    </tr>
+                    <tr class="border-b border-white/5 hover:bg-white/5 transition-colors tabela-row">
+                        <td class="p-5 font-medium">Segurança</td>
+                        <td class="p-5 text-soft">JWT</td>
+                        <td class="p-5 primary-color font-bold">JWT + rate limiting + CORS + multi-tenancy + guardrails</td>
+                    </tr>
+                    <tr class="border-b border-white/5 hover:bg-white/5 transition-colors tabela-row">
+                        <td class="p-5 font-medium">Documentação</td>
+                        <td class="p-5 text-soft">README</td>
+                        <td class="p-5 primary-color font-bold">Swagger + ReDoc + PRD + ADRs + BMAD</td>
+                    </tr>
+                    <tr class="border-b border-white/5 hover:bg-white/5 transition-colors tabela-row">
+                        <td class="p-5 font-medium">Validação de dados</td>
+                        <td class="p-5 text-soft">Básica</td>
+                        <td class="p-5 primary-color font-bold">4 camadas: serializer, guardrail, MIME, limite</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors tabela-row">
+                        <td class="p-5 font-medium">Tratamento de erros</td>
+                        <td class="p-5 text-soft">Básico</td>
+                        <td class="p-5 primary-color font-bold">Envelope padronizado + erros SSE sem quebrar stream</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- ===== SLIDE ENDPOINTS IA ===== -->
+    <section class="min-h-screen flex flex-col items-center justify-center px-6 py-16">
+        <div class="text-center mb-12" data-aos="fade-up">
+            <div class="title-row mb-4">
+                <div class="icon-hero"><i data-lucide="table" class="primary-color w-6 h-6"></i></div>
+                <h2 class="text-5xl font-black text-left">Endpoints de IA —<br><span class="primary-color">4 implementados</span> <span class="text-soft text-3xl font-semibold">(mínimo: 2)</span></h2>
+            </div>
+        </div>
+        <div class="glass-card w-full max-w-5xl overflow-hidden" data-aos="fade-up" data-aos-delay="100">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr style="border-bottom:1px solid rgba(6,182,212,0.20);">
+                        <th class="text-left p-5 font-bold tracking-widest uppercase text-xs primary-color">Endpoint</th>
+                        <th class="text-left p-5 font-bold tracking-widest uppercase text-xs primary-color">Tipo</th>
+                        <th class="text-left p-5 font-bold tracking-widest uppercase text-xs primary-color">Pipeline</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="border-b border-white/5 hover:bg-white/5 transition-colors" data-aos="fade-up" data-aos-delay="160">
+                        <td class="p-5 font-mono text-xs text-soft">POST /api/v1/conversations/{id}/messages/</td>
+                        <td class="p-5"><span class="badge-ok">Síncrono</span></td>
+                        <td class="p-5 text-softer text-sm">Guardrail → Skills → RAG → LLM → Guardrail saída</td>
+                    </tr>
+                    <tr class="border-b border-white/5 hover:bg-white/5 transition-colors" data-aos="fade-up" data-aos-delay="230">
+                        <td class="p-5 font-mono text-xs text-soft">GET /api/v1/conversations/{id}/stream/</td>
+                        <td class="p-5 space-y-1"><span class="badge-ok">Streaming</span><br><span class="badge-bom">SSE</span></td>
+                        <td class="p-5 text-softer text-sm">Mesmo pipeline, token a token via EventSource</td>
+                    </tr>
+                    <tr class="border-b border-white/5 hover:bg-white/5 transition-colors" data-aos="fade-up" data-aos-delay="300">
+                        <td class="p-5 font-mono text-xs text-soft">POST /api/v1/admin/knowledge/upload/</td>
+                        <td class="p-5"><span class="badge-ok">Ingestão RAG</span></td>
+                        <td class="p-5 text-softer text-sm">Embeddings + indexação ChromaDB (PDF/TXT/MD ≤ 10MB)</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors" data-aos="fade-up" data-aos-delay="370">
+                        <td class="p-5 font-mono text-xs text-soft">GET /api/v1/health/summary/</td>
+                        <td class="p-5"><span class="badge-ok">Skill IA</span></td>
+                        <td class="p-5 text-softer text-sm">Agregação biométrica 7d + análise por IA</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div style="border-top:1px solid rgba(255,255,255,0.06);padding:14px 20px;">
+                <p class="text-softer text-xs italic">* Todos os endpoints com autenticação JWT Bearer + rate limiting DRF</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SLIDE 15: EQUIPE ===== -->
+    <section class="min-h-screen flex flex-col items-center justify-center relative overflow-hidden px-6">
+        <div class="cta-breathe absolute inset-0 pointer-events-none"></div>
+        <div class="relative z-10 text-center max-w-4xl w-full">
+            <div data-aos="fade-up">
+                <p class="attribute-pill inline-block px-5 py-2 text-sm tracking-widest uppercase text-soft mb-8">a equipe</p>
+                <h2 class="text-7xl font-black mb-14">Cinco. <span class="primary-color">Um Sistema.</span></h2>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-14">
+                <div class="glass-card p-5 text-center" data-aos="zoom-in" data-aos-delay="100">
+                    <div class="icon-hero mx-auto mb-3"><i data-lucide="user" class="primary-color w-5 h-5"></i></div>
+                    <p class="font-bold text-sm">Adriano</p>
+                    <p class="text-softer text-xs">Soares</p>
+                </div>
+                <div class="glass-card p-5 text-center" data-aos="zoom-in" data-aos-delay="180">
+                    <div class="icon-hero mx-auto mb-3"><i data-lucide="user" class="primary-color w-5 h-5"></i></div>
+                    <p class="font-bold text-sm">Júlio César</p>
+                    <p class="text-softer text-xs">Pires</p>
+                </div>
+                <div class="glass-card p-5 text-center" data-aos="zoom-in" data-aos-delay="260">
+                    <div class="icon-hero mx-auto mb-3"><i data-lucide="user" class="primary-color w-5 h-5"></i></div>
+                    <p class="font-bold text-sm">Luciano</p>
+                    <p class="text-softer text-xs">Cordeiro</p>
+                </div>
+                <div class="glass-card p-5 text-center" data-aos="zoom-in" data-aos-delay="340">
+                    <div class="icon-hero mx-auto mb-3"><i data-lucide="user" class="primary-color w-5 h-5"></i></div>
+                    <p class="font-bold text-sm">Mara</p>
+                    <p class="text-softer text-xs">Pereira</p>
+                </div>
+                <div class="glass-card p-5 text-center" data-aos="zoom-in" data-aos-delay="420">
+                    <div class="icon-hero mx-auto mb-3"><i data-lucide="user" class="primary-color w-5 h-5"></i></div>
+                    <p class="font-bold text-sm">Pedro</p>
+                    <p class="text-softer text-xs">Diehl</p>
+                </div>
+            </div>
+            <p class="text-soft text-sm italic max-w-2xl mx-auto" data-aos="fade-up" data-aos-delay="500">
+                "MediClaw não substitui avaliação, diagnóstico ou tratamento por profissional habilitado."
+            </p>
+            <p class="text-softer text-xs mt-4 tracking-widest uppercase">Feito com Mira · 2026</p>
+        </div>
+    </section>
+
+    <!-- ===== FOOTER MEDICLAW ===== -->
+    <footer id="mira-footer" style="background:rgba(0,0,0,0.8);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid rgba(6,182,212,0.12);padding:20px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span style="width:28px;height:28px;border-radius:7px;background:rgba(6,182,212,0.15);border:1px solid rgba(6,182,212,0.30);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i data-lucide="stethoscope" style="width:13px;height:13px;color:var(--mira-primary);"></i>
+            </span>
+            <span style="font-family:'Inter',sans-serif;font-weight:900;font-size:14px;color:#fff;">Medi<span style="color:var(--mira-primary);">Claw</span></span>
+            <span style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,0.35);">· Sistema de Apoio à Decisão Clínica com IA</span>
+        </div>
+        <span style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,0.25);letter-spacing:1.5px;text-transform:uppercase;">Adriano · Júlio · Luciano · Mara · Pedro · UFG 2026</span>
+    </footer>
+
+    <script>
+    AOS.init({ duration: 800, once: true });
+    lucide.createIcons();
+    const P = () => getComputedStyle(document.documentElement).getPropertyValue('--mira-primary').trim();
+
+    // --- SLIDE 1: partículas orbitais (loop) + contadores (entrada) ---
+    (function () {
+        const W = window.innerWidth, H = window.innerHeight;
+        const svg = d3.select('#capa-stage').append('svg').attr('viewBox', `0 0 ${W} ${H}`);
+        const cx = W / 2, cy = H / 2;
+        const pts = d3.range(28).map(() => ({
+            r: 160 + Math.random() * Math.min(W, H) * 0.38,
+            a: Math.random() * Math.PI * 2,
+            s: 0.0012 + Math.random() * 0.0025,
+            sz: 1.5 + Math.random() * 2.5
+        }));
+        const dots = svg.selectAll('circle').data(pts).join('circle')
+            .attr('r', d => d.sz).attr('fill', P()).attr('opacity', 0.22);
+        d3.timer(() => {
+            dots.attr('cx', d => { d.a += d.s; return cx + Math.cos(d.a) * d.r; })
+                .attr('cy', d => cy + Math.sin(d.a) * d.r * 0.52);
+        });
+
+        const io = new IntersectionObserver(entries => {
+            entries.forEach(e => {
+                if (!e.isIntersecting) return;
+                const el = e.target, tgt = +el.dataset.target, suf = el.dataset.suffix || '';
+                d3.select(el).transition().duration(1600).ease(d3.easeCubicOut)
+                    .tween('c', () => { const i = d3.interpolateNumber(0, tgt); return t => el.textContent = Math.round(i(t)) + suf; });
+                io.unobserve(el);
+            });
+        }, { threshold: 0.4 });
+        document.querySelectorAll('.metric-value').forEach(c => io.observe(c));
+    })();
+
+    // --- SLIDE 2: prob-cards pulsam em cascata (loop) ---
+    (function () {
+        const cards = document.querySelectorAll('.prob-card');
+        let i = 0;
+        setInterval(() => {
+            cards.forEach((c, j) => {
+                c.style.transform = j === i ? 'translateY(-8px) scale(1.02)' : '';
+                c.style.boxShadow = j === i ? '0 20px 50px var(--mira-glow-strong)' : '';
+            });
+            i = (i + 1) % cards.length;
+        }, 2000);
+    })();
+
+    // --- SLIDE 4: spotlight pivot (loop) ---
+    (function () {
+        const a = document.getElementById('pivot-a'), b = document.getElementById('pivot-b');
+        let t = true;
+        setInterval(() => {
+            const on = t ? a : b, off = t ? b : a;
+            on.style.transform = 'translateY(-8px) scale(1.02)';
+            on.style.boxShadow = '0 20px 50px var(--mira-glow-strong)';
+            off.style.transform = ''; off.style.boxShadow = '';
+            t = !t;
+        }, 2800);
+    })();
+
+    // --- SLIDE 7: ARQUITETURA (entrada + loop) ---
+    function initArquitetura() {
+        const container = document.getElementById('arq-stage');
+        d3.select(container).selectAll('*').remove();
+        const W = 960, H = 480;
+        const svg = d3.select(container).append('svg').attr('viewBox', `0 0 ${W} ${H}`);
+        const primary = P();
+        const camadas = [
+            { label: 'Apresentação', sub: 'Next.js 16 · React 19 · TypeScript · Chakra UI v3', cor: primary },
+            { label: 'Serviços', sub: 'Django 5.2 · DRF 3.16 · SSE Streaming · JWT', cor: 'rgba(255,255,255,0.9)' },
+            { label: 'Dados', sub: 'PostgreSQL 16 · ChromaDB 0.5 · LangChain 0.3', cor: 'rgba(255,255,255,0.9)' },
+            { label: 'Inteligência', sub: 'Orchestrator · Guardrails · RAG · OpenAI / Gemini', cor: primary }
+        ];
+        const bW = 800, bH = 68, bX = 80, gapY = 30;
+
+        camadas.forEach((c, i) => {
+            const y = 30 + i * (bH + gapY);
+            const g = svg.append('g').attr('opacity', 0);
+
+            g.append('rect').attr('x', bX).attr('y', y).attr('width', 0).attr('height', bH).attr('rx', 12)
+                .attr('fill', 'rgba(255,255,255,0.04)')
+                .attr('stroke', i === 0 || i === 3 ? primary : 'rgba(255,255,255,0.12)').attr('stroke-width', 1.5)
+                .transition().delay(200 + i * 220).duration(600).ease(d3.easeBackOut).attr('width', bW);
+
+            g.append('text').text(c.label).attr('x', bX + 24).attr('y', y + 24)
+                .attr('fill', c.cor).attr('font-size', 17).attr('font-weight', 700)
+                .attr('dominant-baseline', 'middle').attr('opacity', 0)
+                .transition().delay(480 + i * 220).duration(400).attr('opacity', 1);
+
+            g.append('text').text(c.sub).attr('x', bX + 24).attr('y', y + 50)
+                .attr('fill', 'rgba(255,255,255,0.48)').attr('font-size', 12)
+                .attr('dominant-baseline', 'middle').attr('opacity', 0)
+                .transition().delay(560 + i * 220).duration(400).attr('opacity', 1);
+
+            g.append('text').text(i + 1).attr('x', bX + bW - 30).attr('y', y + bH / 2 + 1)
+                .attr('fill', primary).attr('font-size', 22).attr('font-weight', 900)
+                .attr('text-anchor', 'middle').attr('dominant-baseline', 'middle').attr('opacity', 0)
+                .transition().delay(600 + i * 220).duration(300).attr('opacity', 1);
+
+            g.transition().delay(200 + i * 220).duration(300).attr('opacity', 1);
+
+            if (i < 3) {
+                const ay = y + bH + 2, aym = ay + gapY / 2;
+                const arr = svg.append('g').attr('opacity', 0);
+                arr.append('line').attr('x1', W / 2).attr('y1', ay).attr('x2', W / 2).attr('y2', ay + gapY - 4)
+                    .attr('stroke', 'rgba(255,255,255,0.18)').attr('stroke-width', 1.5).attr('stroke-dasharray', '3 3');
+                arr.append('polygon')
+                    .attr('points', `${W/2},${ay+gapY-2} ${W/2-5},${ay+gapY-12} ${W/2+5},${ay+gapY-12}`)
+                    .attr('fill', primary);
+                arr.transition().delay(700 + i * 220).duration(400).attr('opacity', 1);
+
+                // pulso nas setas (loop)
+                d3.interval(() => {
+                    arr.select('polygon').transition().duration(300).attr('transform', 'translate(0,4)')
+                        .transition().duration(300).attr('transform', 'translate(0,0)');
+                }, 1600 + i * 300);
+            }
+        });
+
+        // partícula descendo (loop)
+        const part = svg.append('circle').attr('r', 5).attr('fill', primary).attr('cx', W / 2 + 120).attr('opacity', 0)
+            .style('filter', `drop-shadow(0 0 6px ${primary})`);
+        function descend() {
+            const y0 = 30 + bH / 2, y1 = 30 + 3 * (bH + gapY) + bH / 2;
+            part.attr('cy', y0).attr('opacity', 1)
+                .transition().delay(1400).duration(2800).ease(d3.easeCubicInOut).attr('cy', y1)
+                .transition().duration(400).attr('opacity', 0).on('end', descend);
+        }
+        setTimeout(descend, 1400);
+    }
+    initArquitetura();
+    document.getElementById('arq-replay-btn').onclick = initArquitetura;
+
+    // --- SLIDE 8: PIPELINE 7 ETAPAS (entrada + loop) ---
+    function initPipeline() {
+        const container = document.getElementById('pipeline-stage');
+        d3.select(container).selectAll('*').remove();
+        const W = 960, H = 460;
+        const svg = d3.select(container).append('svg').attr('viewBox', `0 0 ${W} ${H}`);
+        const primary = P();
+        const etapas = [
+            { label: 'Guardrail\npré-LLM', alert: true },
+            { label: 'Captura\nconversacional', alert: false },
+            { label: 'Busca\nRAG', alert: false },
+            { label: 'Montagem\ndo prompt', alert: false },
+            { label: 'LLM\n(stream)', alert: false },
+            { label: 'Guardrail\npós-LLM', alert: true },
+            { label: 'Disclaimer\nobrigatório', alert: false }
+        ];
+        // Row 1: 0..3 (y=130), Row 2: 4..6 (y=330), serpentino
+        const xs1 = d3.scalePoint().domain([0,1,2,3]).range([100, W - 100]);
+        const xs2 = d3.scalePoint().domain([4,5,6]).range([W - 100, 100]);
+        const y1 = 130, y2 = 330;
+        const pos = etapas.map((e, i) => i <= 3 ? { x: xs1(i), y: y1 } : { x: xs2(i), y: y2 });
+
+        // linhas
+        etapas.forEach((e, i) => {
+            if (i === etapas.length - 1) return;
+            const p = pos[i], n = pos[i + 1];
+            if (i === 3) {
+                // curva de virada
+                svg.append('path')
+                    .attr('d', `M${p.x},${p.y + 36} Q${p.x},${(y1+y2)/2} ${n.x},${n.y + 36}`)
+                    .attr('fill', 'none').attr('stroke', 'rgba(255,255,255,0.12)')
+                    .attr('stroke-width', 1.5).attr('stroke-dasharray', '4 4').attr('opacity', 0)
+                    .transition().delay(500 + i * 180).duration(400).attr('opacity', 1);
+            } else {
+                svg.append('line')
+                    .attr('x1', p.x).attr('y1', p.y).attr('x2', n.x).attr('y2', n.y)
+                    .attr('stroke', 'rgba(255,255,255,0.12)').attr('stroke-width', 1.5).attr('stroke-dasharray', '4 4')
+                    .attr('opacity', 0).transition().delay(500 + i * 180).duration(400).attr('opacity', 1);
+            }
+        });
+
+        // nós
+        etapas.forEach((e, i) => {
+            const g = svg.append('g').attr('transform', `translate(${pos[i].x},${pos[i].y})`).attr('opacity', 0);
+            g.append('circle').attr('r', 0)
+                .attr('fill', e.alert ? 'rgba(6,182,212,0.12)' : 'rgba(255,255,255,0.05)')
+                .attr('stroke', e.alert ? primary : 'rgba(255,255,255,0.22)').attr('stroke-width', e.alert ? 2 : 1.5)
+                .transition().delay(300 + i * 180).duration(500).ease(d3.easeBackOut).attr('r', 34);
+            g.append('text').text(i + 1)
+                .attr('text-anchor', 'middle').attr('dy', 5)
+                .attr('fill', e.alert ? primary : 'rgba(255,255,255,0.9)').attr('font-size', 15).attr('font-weight', 800)
+                .attr('opacity', 0).transition().delay(540 + i * 180).duration(300).attr('opacity', 1);
+            e.label.split('\n').forEach((ln, li) => {
+                g.append('text').text(ln).attr('text-anchor', 'middle').attr('dy', 66 + li * 16)
+                    .attr('fill', e.alert ? primary : 'rgba(255,255,255,0.60)').attr('font-size', 12)
+                    .attr('opacity', 0).transition().delay(580 + i * 180).duration(300).attr('opacity', 1);
+            });
+            g.transition().delay(300 + i * 180).duration(300).attr('opacity', 1);
+            if (e.alert) {
+                d3.interval(() => {
+                    g.select('circle').transition().duration(350).attr('r', 40).transition().duration(350).attr('r', 34);
+                }, 2200 + i * 400);
+            }
+        });
+
+        // partícula
+        const part = svg.append('circle').attr('r', 6).attr('fill', primary).attr('opacity', 0)
+            .style('filter', `drop-shadow(0 0 8px ${primary})`);
+        function travel(idx) {
+            if (idx === 0) { part.attr('cx', pos[0].x).attr('cy', pos[0].y).attr('opacity', 1); }
+            if (idx >= etapas.length) {
+                part.transition().duration(400).attr('opacity', 0).on('end', () => setTimeout(() => travel(0), 700));
+                return;
+            }
+            part.transition().duration(idx === 3 ? 700 : 450).ease(d3.easeCubicInOut)
+                .attr('cx', pos[idx].x).attr('cy', pos[idx].y)
+                .on('end', () => setTimeout(() => travel(idx + 1), 160));
+        }
+        setTimeout(() => travel(0), 1600);
+        window.__pipelineReplay = () => travel(0);
+    }
+    initPipeline();
+    document.getElementById('pipeline-replay-btn').onclick = initPipeline;
+
+    // --- SLIDE 9: spotlight guardrails/RAG (loop) ---
+    (function () {
+        const a = document.getElementById('gr-a'), b = document.getElementById('gr-b');
+        let t = true;
+        setInterval(() => {
+            const on = t ? a : b, off = t ? b : a;
+            on.style.transform = 'translateY(-8px) scale(1.02)'; on.style.boxShadow = '0 20px 50px var(--mira-glow-strong)';
+            off.style.transform = ''; off.style.boxShadow = '';
+            t = !t;
+        }, 3000);
+    })();
+
+    // --- SLIDE 12: badges pulsam em cascata (loop) ---
+    (function () {
+        const badges = Array.from(document.querySelectorAll('.badge-ok'));
+        let i = 0;
+        setInterval(() => {
+            badges[i % badges.length].style.transform = 'scale(1.18)';
+            setTimeout(() => { badges[i % badges.length].style.transform = ''; }, 280);
+            i++;
+        }, 480);
+    })();
+
+    // --- SLIDE 13: spotlight pontos fortes/lacunas (loop) ---
+    (function () {
+        const a = document.getElementById('pf-a'), b = document.getElementById('pf-b');
+        let t = true;
+        setInterval(() => {
+            const on = t ? a : b, off = t ? b : a;
+            on.style.transform = 'translateY(-8px) scale(1.02)'; on.style.boxShadow = '0 20px 50px var(--mira-glow-strong)';
+            off.style.transform = ''; off.style.boxShadow = '';
+            t = !t;
+        }, 3400);
+    })();
+
+    // --- SLIDE 14: linhas da tabela acendem em cascata (loop) ---
+    (function () {
+        const rows = document.querySelectorAll('.tabela-row');
+        let i = 0;
+        setInterval(() => {
+            rows.forEach((r, j) => {
+                r.style.background = j === i ? 'rgba(6,182,212,0.06)' : '';
+            });
+            i = (i + 1) % rows.length;
+        }, 1200);
+    })();
+
+    // === NAVEGAÇÃO CARD-A-CARD ===
+    (function () {
+        const sections = Array.from(document.querySelectorAll('body > section'));
+        if (!sections.length) return;
+        const progress = document.getElementById('mira-progress');
+        const nextBtn = document.getElementById('mira-next');
+        const nextIcon = document.getElementById('mira-next-icon');
+        const slideCounter = document.getElementById('mira-slide-counter');
+        const atBottom = () => (window.scrollY + window.innerHeight) >= (document.documentElement.scrollHeight - 100);
+        function currentIdx() {
+            const y = window.scrollY + window.innerHeight * 0.3;
+            let idx = -1;
+            sections.forEach((s, i) => { if (s.offsetTop <= y) idx = i; });
+            return idx;
+        }
+        function updateCounter() {
+            const idx = Math.max(0, currentIdx());
+            slideCounter.textContent = (idx + 1) + ' / ' + sections.length;
+        }
+        function goTo(i) {
+            sections[Math.max(0, Math.min(sections.length - 1, i))].scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        updateCounter();
+        window.addEventListener('scroll', () => {
+            const dH = document.documentElement.scrollHeight - window.innerHeight;
+            progress.style.width = (dH > 0 ? (window.scrollY / dH) * 100 : 0) + '%';
+            nextBtn.classList.toggle('visible', window.scrollY > 300);
+            nextIcon.setAttribute('data-lucide', atBottom() ? 'chevron-up' : 'chevron-down');
+            lucide.createIcons();
+            updateCounter();
+        });
+        nextBtn.addEventListener('click', () => {
+            atBottom() ? window.scrollTo({ top: 0, behavior: 'smooth' }) : goTo(currentIdx() + 1);
+        });
+        document.addEventListener('keydown', e => {
+            if (['ArrowRight','ArrowDown','PageDown'].includes(e.key)) { e.preventDefault(); goTo(currentIdx() + 1); }
+            else if (['ArrowLeft','ArrowUp','PageUp'].includes(e.key)) {
+                e.preventDefault();
+                const i = currentIdx();
+                i <= 0 ? window.scrollTo({ top: 0, behavior: 'smooth' }) : goTo(i - 1);
+            } else if (e.key === 'Home') { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+            else if (e.key === 'End') { e.preventDefault(); goTo(sections.length - 1); }
+            else if (e.key.toLowerCase() === 'f') {
+                document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+            }
+        });
+    })();
+    </script>
+</body>
+</html>
