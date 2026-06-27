@@ -16,11 +16,11 @@ def _get_embeddings() -> OpenAIEmbeddings:
     return _emb
 
 
-def search(query: str, k: int = 5, min_score: float = 0.75) -> list[dict]:
+def search(query: str, k: int = 5, min_score: float = 0.40) -> list[dict]:
     """
     Busca chunks relevantes no vector store.
-    Retorna lista com keys: content, source, chunk_id, document_id, score.
-    ChromaDB retorna distância cosseno [0,2]; convertemos para score [0,1] = 1 - dist/2.
+    A coleção usa espaço cosseno: ChromaDB retorna distância cosseno em [0, 1]
+    onde 0 = idêntico. Convertemos para score de similaridade: score = 1 - dist.
     """
     coll = get_collection()
     if coll.count() == 0:
@@ -37,7 +37,7 @@ def search(query: str, k: int = 5, min_score: float = 0.75) -> list[dict]:
     for content, meta, dist in zip(
         res["documents"][0], res["metadatas"][0], res["distances"][0]
     ):
-        score = max(0.0, 1.0 - (dist / 2.0))
+        score = max(0.0, 1.0 - dist)
         if score < min_score:
             continue
         out.append(

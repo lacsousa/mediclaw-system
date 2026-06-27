@@ -18,7 +18,11 @@ interface ToastContextValue {
   showToast: (message: string, status: ToastStatus) => void;
 }
 
-export const toaster = createToaster({ placement: "top-end", pauseOnPageIdle: true });
+export const toaster = createToaster({
+  placement: "top-end",
+  pauseOnPageIdle: true,
+  duration: 5000,
+});
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
@@ -32,11 +36,21 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       <Toaster toaster={toaster}>
         {(toast) => (
-          <ToastRoot key={toast.id}>
+          <ToastRoot
+            key={toast.id}
+            p="4"
+            minW="280px"
+            maxW="400px"
+            gap="3"
+            display="flex"
+            alignItems="center"
+          >
             <ToastIndicator />
-            <Stack gap="1" flex="1" maxW="100%">
+            <Stack gap="1" flex="1" minW="0">
               {toast.title && <ToastTitle>{toast.title}</ToastTitle>}
-              {toast.description && <ToastDescription>{toast.description}</ToastDescription>}
+              {toast.description && (
+                <ToastDescription>{toast.description}</ToastDescription>
+              )}
             </Stack>
             <ToastCloseTrigger />
           </ToastRoot>
