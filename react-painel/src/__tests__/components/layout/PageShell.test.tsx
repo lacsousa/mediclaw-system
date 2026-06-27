@@ -1,6 +1,6 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderWithChakra, screen } from "@/test-utils";
+import { renderWithChakra, screen, within } from "@/test-utils";
 import type { User } from "@/types/api";
 
 vi.mock("@/context/AuthContext", () => ({
@@ -53,7 +53,10 @@ describe("PageShell", () => {
         <p>test</p>
       </PageShell>
     );
-    expect(screen.getByRole("button", { name: /sair/i })).toBeInTheDocument();
+    // A sidebar é display:none em viewport base (JSDOM); { hidden: true } inclui elementos ocultos
+    expect(
+      screen.getByRole("button", { name: /sair/i, hidden: true })
+    ).toBeInTheDocument();
   });
 
   it("shows chat navigation link", () => {
@@ -83,6 +86,8 @@ describe("PageShell", () => {
         <p>test</p>
       </PageShell>
     );
-    expect(screen.getByText("Maria")).toBeInTheDocument();
+    // O nome aparece tanto na sidebar quanto no topbar; escopa a busca no banner (header)
+    const topbar = screen.getByRole("banner");
+    expect(within(topbar).getByText("Maria")).toBeInTheDocument();
   });
 });

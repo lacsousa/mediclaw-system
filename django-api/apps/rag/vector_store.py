@@ -3,13 +3,12 @@ import threading
 
 import chromadb
 from chromadb.config import Settings
-from chromadb.utils.embedding_functions import EmbeddingFunction
 
 _lock = threading.Lock()
 _client = None
 _collection = None
 
-COLLECTION_NAME = "mediclaw_kb_v2"  # v2 usa cosine; a v1 (l2) é mantida para não apagar dados existentes
+COLLECTION_NAME = "mediclaw_kb"
 
 
 def get_collection():
@@ -31,8 +30,5 @@ def get_collection():
                 ),
             ),
         )
-        _collection = _client.get_or_create_collection(
-            COLLECTION_NAME,
-            metadata={"hnsw:space": "cosine"},
-        )
+        _collection = _client.get_or_create_collection(COLLECTION_NAME)
         return _collection
