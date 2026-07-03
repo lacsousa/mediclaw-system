@@ -88,8 +88,9 @@ PostgreSQL   ai_engine        rag
 - Comunicação via REST e EventSource (SSE)
 
 **Infra:**
-- Docker + Docker Compose + DevContainer
-- GitLab CI com stages de lint (Black) e test (pytest + PostgreSQL 16 real)
+- Docker + Docker Compose + DevContainer (dev)
+- Deploy em produção: `mediclaw.com.br`, VPS Hostinger, Docker Compose + Nginx + Let's Encrypt (ver `DEPLOY.md`)
+- Repositório no GitHub; lint (Black/pre-commit) e testes (pytest + PostgreSQL 16 real) rodam localmente antes do merge
 
 ### Módulos do Backend (Monolito Modular)
 
@@ -166,7 +167,7 @@ Isso evita lock-in de fornecedor e permite comparar custo e qualidade entre prov
 | **Frontend** | Vitest + Testing Library | **~40 testes** |
 | **Total geral** | — | **~177 testes** |
 
-Os testes de backend rodam contra PostgreSQL 16 real (não SQLite), garantindo fidelidade ao ambiente de produção. O CI do GitLab executa a suite completa em cada push.
+Os testes de backend rodam contra PostgreSQL 16 real (não SQLite), garantindo fidelidade ao ambiente de produção. Repositório agora no GitHub; a suite roda localmente via `pytest` antes do merge (sem pipeline de CI automatizado no momento).
 
 ### Outras Ferramentas de Qualidade
 

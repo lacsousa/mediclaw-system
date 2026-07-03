@@ -160,7 +160,7 @@ Validação implementada em múltiplas camadas:
 [django-api/config/urls.py:31-37](django-api/config/urls.py#L31-L37) — Todas as rotas usam prefixo `/api/v1/...`
 
 **6 - versionamento**
-[django-api/.gitlab-ci.yml:1-38](django-api/.gitlab-ci.yml#L1-L38) — CI/CD: stages de `lint` (Black + pre-commit) e `test` (pytest com PostgreSQL 16 real)
+[DEPLOY.md](DEPLOY.md) — processo de deploy/release documentado (build das imagens, migrations, rollout no VPS via `git pull` + `docker compose up`); o pipeline de CI do GitLab foi removido após a migração do repositório para o GitHub
 
 **6 - versionamento**
 [django-api/.pre-commit-config.yaml](django-api/.pre-commit-config.yaml) — Pre-commit hooks: Black para formatação automática
@@ -221,7 +221,7 @@ Monolito modular (apps por domínio), service layer (views finas — `*/services
 [django-api/.env.example](django-api/.env.example) — Todas as variáveis de ambiente documentadas com exemplos
 
 **9 - reprodutibilidade**
-[django-api/.gitlab-ci.yml:28-37](django-api/.gitlab-ci.yml#L28-L37) — CI roda `pytest` com PostgreSQL 16 real (não SQLite), garantindo fidelidade ao ambiente de produção
+[django-api/.devcontainer/docker-compose.yml](django-api/.devcontainer/docker-compose.yml) — ambiente local roda contra PostgreSQL 16 real (não SQLite) via Docker Compose, garantindo fidelidade ao ambiente de produção
 
 **9 - reprodutibilidade**
 [django-api/.devcontainer/](django-api/.devcontainer/) — Suporte a DevContainer / GitHub Codespaces para reprodução sem instalação local
@@ -241,9 +241,9 @@ Monolito modular (apps por domínio), service layer (views finas — `*/services
 | **Tratamento de erros** | ✅ Implementado | Excelente | Envelope padronizado |
 | **Logs** | ✅ Implementado (audit stub) | Bom | structlog OK; audit não persiste |
 | **Segurança** | ✅ Implementado (JWT querystring) | Bom | JWT+rate limiting+CORS; token SSE em query string |
-| **Versionamento** | ✅ Implementado | Excelente | v1 nas URLs + CI |
+| **Versionamento** | ✅ Implementado | Excelente | v1 nas URLs + deploy documentado (`DEPLOY.md`) |
 | **Qualidade e documentação** | ✅ Implementado | Excelente | 137 testes + Swagger + README completo |
-| **Repositório público** | ⚠️ Verificar | — | Precisa garantir acesso público no GitHub |
+| **Repositório público** | ✅ Confirmado | — | Repositório público no GitHub |
 | **Apresentação (vídeo)** | ⏳ Pendente | — | Entregável ainda não concluído |
 
 ---
@@ -255,13 +255,14 @@ Monolito modular (apps por domínio), service layer (views finas — `*/services
 3. **Documentação acadêmica excepcional** no README — evolução do projeto, arquitetura, decisões técnicas e limitações.
 4. **Provedores LLM intercambiáveis** (OpenAI ↔ Gemini via variável de ambiente) sem mudança de código.
 5. **Swagger/ReDoc** integrado e acessível.
+6. **Aplicação em produção real:** `mediclaw.com.br` no ar em VPS Hostinger, com HTTPS (Let's Encrypt), Docker Compose e Nginx como reverse proxy — não é só ambiente de desenvolvimento (ver `DEPLOY.md`).
 
 ---
 
 ## Pontos a Corrigir ou Completar Antes da Entrega
 
 ### Crítico
-- [ ] **Garantir repositório público no GitHub** (não apenas GitLab). O professor exige link do GitHub para avaliação.
+- [x] **Repositório público no GitHub** confirmado (migrado do GitLab).
 - [ ] **Gravar vídeo de apresentação** de até 10 minutos (demonstração funcional + características técnicas).
 
 ### Importante (impacta nota)

@@ -283,6 +283,10 @@ test:
 - [ ] CI verde no MR
 - [ ] `pytest` roda mesmo sem testes (saída "no tests collected" não falha)
 
+> **Atualização:** repositório migrado do GitLab para o GitHub; o
+> `.gitlab-ci.yml` foi removido e, por ora, lint (`pre-commit`) e testes
+> (`pytest`) rodam localmente antes do merge, sem pipeline automatizado.
+
 ---
 
 ## Riscos e mitigação

@@ -79,7 +79,7 @@ Desenvolver uma plataforma inteligente que ofereça **suporte à decisão** em s
 | Desenvolver interface web de chat e dashboards de saúde | **Concluído** | [`react-painel/`](react-painel/) — Next.js, chat SSE, pacientes, conhecimento |
 | Implementar skills auxiliares (IMC, conversão de unidades) | **Concluído** | `apps/ai_engine/skills/` |
 | Captura conversacional de dados clínicos | **Concluído** | `apps/ai_engine/services/user_data_capture.py` |
-| Hardening de produção, auditoria persistente e testes E2E | **Pendente (E7)** | Trilha de audit stub; roadmap documentado |
+| Hardening de produção, auditoria persistente e testes E2E | **Parcial (E7)** | Deploy em produção com HTTPS já no ar ([`DEPLOY.md`](DEPLOY.md)); auditoria persistente e E2E ainda pendentes (trilha de audit stub) |
 
 ---
 
@@ -552,7 +552,7 @@ Cobertura de formulários de auth, componentes de chat (input SSE, bubbles, disc
 
 Derivados do roadmap E7 e dos ADRs documentados:
 
-1. **Hardening de produção** — HTTPS obrigatório, secrets management, health checks avançados.
+1. **Hardening de produção adicional** — já em produção com HTTPS (Let's Encrypt) e healthcheck em `docker-compose.prod.yml` (ver [`DEPLOY.md`](DEPLOY.md)); falta pipeline de CI/CD automatizado e rotação de secrets.
 2. **Auditoria persistente** — registro de interações LLM, bloqueios de guardrail e uploads KB.
 3. **Guardrails com ML** — classificador fine-tuned para intenção clínica de risco.
 4. **pgvector** — unificar dados relacionais e vetoriais no PostgreSQL existente.
@@ -619,6 +619,15 @@ Abrir `http://localhost:3000`. Documentação completa: [`react-painel/README.md
 | `DB_*` | django-api `.env` | Conexão PostgreSQL |
 | `CHROMA_PERSIST_DIR` | django-api `.env` | Diretório de persistência ChromaDB |
 | `NEXT_PUBLIC_API_URL` | react-painel `.env.local` | URL base do backend |
+
+### 15.5 Deploy em produção
+
+A aplicação está publicada em `mediclaw.com.br` (subdomínio `api.mediclaw.com.br`
+para a API), hospedada em um VPS Hostinger, com Docker Compose orquestrando
+Postgres, Django (Uvicorn), Next.js e Nginx (TLS via Let's Encrypt).
+
+Passo a passo completo — DNS, provisionamento do VPS, variáveis de ambiente,
+emissão de certificado e operação (deploy, logs, backup) — em [`DEPLOY.md`](DEPLOY.md).
 
 ---
 

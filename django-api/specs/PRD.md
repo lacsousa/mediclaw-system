@@ -493,7 +493,7 @@ Construir um backend Django que sirva uma plataforma de apoio à longevidade e s
 - [ ] Testes de guardrail: ≥ 30 prompts adversariais, ≥ 95% detectados, ≤ 5% falsos positivos
 - [ ] Testes de RAG: indexar doc fixture → query relevante retorna chunk; query off-topic retorna lista vazia
 - [ ] LLM mockado em todos os testes (sem chamada real)
-- [ ] CI passa em `.gitlab-ci.yml` (lint + test)
+- [ ] Lint (`pre-commit run --all-files`) e `pytest` passam antes do merge (sem CI automatizado no momento — repositório está no GitHub)
 
 ---
 

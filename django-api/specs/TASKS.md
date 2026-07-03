@@ -44,6 +44,7 @@
 - [x] `.gitlab-ci.yml` rodando `pre-commit run --all-files` e `pytest`
 - [x] Postgres como service no CI
 - [x] Cache de pip configurado
+- [x] Repositório migrado para o GitHub; pipeline de CI removido (lint/test rodam localmente via `pre-commit` + `pytest`)
 
 ---
 

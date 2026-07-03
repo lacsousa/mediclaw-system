@@ -497,6 +497,7 @@ Epic 1 foi concluído com todas as 3 stories:
 - ✅ `.gitlab-ci.yml` com stages `lint` (pre-commit) e `test` (pytest)
 - ✅ Configuração de variáveis de ambiente para CI
 - ✅ CI verde no MR
+- ⚠️ *Atualização de 2026-07-03:* repositório migrado para o GitHub; `.gitlab-ci.yml` removido (ver entrada abaixo)
 
 ### Estado de Pronto para E2
 - `python manage.py runserver` sobe sem erros
@@ -542,3 +543,33 @@ docker compose -f .devcontainer/docker-compose.yml up postgres -d
 **Frontend** (`.env.local`):
 - `NEXT_PUBLIC_API_URL=http://localhost:8000/api/`
 - Instância axios exportada de `@/lib/api` usa essa variável como `baseURL`
+
+---
+
+## 2026-07-03 — Migração para GitHub e deploy em produção
+
+### Repositório
+
+O monorepo saiu do GitLab e passou a ser hospedado no GitHub. Os arquivos
+`.gitlab-ci.yml` (django-api e react-painel) foram removidos; por ora não há
+pipeline de CI automatizado — lint (`pre-commit run --all-files`) e testes
+(`pytest`) rodam localmente antes do merge.
+
+### Deploy
+
+MediClaw foi colocado no ar em `mediclaw.com.br` (subdomínio `api.mediclaw.com.br`
+para a API), hospedado em um VPS Hostinger (Ubuntu, KVM 2). Stack de produção:
+
+| Camada | Como roda |
+|---|---|
+| Reverse proxy / TLS | Nginx + Let's Encrypt (renovação automática via container `certbot`) |
+| Painel (Next.js) | build `output: "standalone"`, container próprio |
+| API (Django) | Uvicorn (ASGI), container próprio, `migrate` + `collectstatic` no entrypoint |
+| Banco | PostgreSQL 16 (imagem `pgvector/pgvector:pg16`), volume Docker persistente |
+| RAG | ChromaDB, persistido em volume Docker (`chroma_data`) |
+
+Toda a orquestração está em `docker-compose.prod.yml` na raiz do monorepo, com
+Dockerfiles de produção em `django-api/Dockerfile.prod` e
+`react-painel/Dockerfile.prod`. O passo a passo completo (DNS, VPS, variáveis
+de ambiente, emissão de certificado, operação e checklist de segurança/LGPD)
+está documentado em `DEPLOY.md`.

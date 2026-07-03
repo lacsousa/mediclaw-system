@@ -1,0 +1,97 @@
+# docker-compose.prod.yml
+# Stack de produção do MediClaw para o VPS Hostinger.
+# Uso: ver DEPLOY.md na raiz do repo para o passo a passo completo.
+#
+#   docker compose -f docker-compose.prod.yml up -d --build
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: mediclaw_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-mediclaw}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [mediclaw]
+    # Não publica porta no host: só django-api acessa, via rede interna.
+
+  django-api:
+    build:
+      context: ./django-api
+      dockerfile: Dockerfile.prod
+    container_name: mediclaw_django
+    restart: unless-stopped
+    env_file:
+      - ./django-api/.env.production
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+    volumes:
+      - chroma_data:/app/chroma_data
+      - django_static:/app/staticfiles
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [mediclaw]
+    # Sem "ports:" — só o Nginx fala com o Django, via rede interna (porta 8000).
+
+  react-painel:
+    build:
+      context: ./react-painel
+      dockerfile: Dockerfile.prod
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.mediclaw.com.br}
+    container_name: mediclaw_painel
+    restart: unless-stopped
+    depends_on:
+      - django-api
+    networks: [mediclaw]
+    # Sem "ports:" — só o Nginx fala com o Next.js, via rede interna (porta 3000).
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: mediclaw_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - django_static:/var/www/static:ro
+      - certbot_etc:/etc/letsencrypt:ro
+      - certbot_webroot:/var/www/certbot:ro
+    depends_on:
+      - django-api
+      - react-painel
+    networks: [mediclaw]
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: mediclaw_certbot
+    volumes:
+      - certbot_etc:/etc/letsencrypt
+      - certbot_webroot:/var/www/certbot
+    # Renova a cada 12h; o certbot só age quando o certificado está perto de expirar.
+    entrypoint:
+      - "/bin/sh"
+      - "-c"
+      - "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"
+
+volumes:
+  pgdata:
+  chroma_data:
+  django_static:
+  certbot_etc:
+  certbot_webroot:
+
+networks:
+  mediclaw:
+    name: mediclaw-prod-network

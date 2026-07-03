@@ -1,0 +1,62 @@
+# django-api/Dockerfile.prod
+# Build de produção: usa uv (mesmo gerenciador do dev) para instalar as
+# dependências travadas em uv.lock, depois roda a API via Uvicorn (ASGI).
+
+# ---------- Stage 1: build das dependências ----------
+FROM python:3.12-slim-bookworm AS builder
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    PYTHONUNBUFFERED=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        libpq-dev \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+
+WORKDIR /app
+
+# Cache-friendly: copia só os manifestos primeiro
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-install-project --no-dev
+
+# Agora copia o código e instala o próprio projeto
+COPY . .
+RUN uv sync --frozen --no-dev
+
+# ---------- Stage 2: imagem final, enxuta ----------
+FROM python:3.12-slim-bookworm AS runtime
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/app/.venv/bin:$PATH" \
+    DJANGO_SETTINGS_MODULE=config.settings
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libpq5 \
+        curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --uid 1000 django
+
+WORKDIR /app
+
+COPY --from=builder --chown=django:django /app /app
+COPY --chown=django:django entrypoint.prod.sh /app/entrypoint.prod.sh
+RUN chmod +x /app/entrypoint.prod.sh
+
+# Volumes de dados persistentes (Postgres roda à parte; isto é só o que
+# o container do Django precisa gravar em disco)
+RUN mkdir -p /app/chroma_data /app/staticfiles \
+    && chown -R django:django /app/chroma_data /app/staticfiles
+
+USER django
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD curl -fsS http://localhost:8000/health/ || exit 1
+
+ENTRYPOINT ["/app/entrypoint.prod.sh"]

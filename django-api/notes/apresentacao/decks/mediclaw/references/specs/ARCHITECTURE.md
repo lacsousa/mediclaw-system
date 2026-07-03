@@ -120,8 +120,8 @@ React Client ──HTTPS──▶  Django/DRF (uvicorn ASGI)
 | Container | Docker + Docker Compose |
 | Orquestração local | DevContainer (já no repo) |
 | Volumes | `pgdata`, `chroma_data`, `knowledge_base` |
-| CI | GitLab CI (`.gitlab-ci.yml` já presente) |
-| Deploy alvo | VPS single-node + reverse proxy (Nginx) |
+| Repositório | GitHub (migrado; sem pipeline de CI automatizado no momento) |
+| Deploy | `mediclaw.com.br` em VPS Hostinger — Docker Compose + Nginx + Let's Encrypt (ver `DEPLOY.md` na raiz do monorepo) |
 
 ---
 
