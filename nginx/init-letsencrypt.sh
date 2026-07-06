@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# ⚠️ NÃO USADO NESTE DEPLOY — mantido só como referência.
+# Este VPS já roda outro projeto (llmscout.tech) com Nginx do SISTEMA +
+# Certbot próprio nas portas 80/443. Por isso o MediClaw usa as configs em
+# nginx/system/ (aplicadas no Nginx do host), não este container Nginx
+# dockerizado. Ver DEPLOY.md, seção "1. Nginx do sistema".
+
 # nginx/init-letsencrypt.sh
 #
 # Bootstrap dos certificados Let's Encrypt na primeira subida do stack.

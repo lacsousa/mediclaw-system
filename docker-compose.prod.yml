@@ -3,6 +3,12 @@
 # Uso: ver DEPLOY.md na raiz do repo para o passo a passo completo.
 #
 #   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Este VPS também hospeda outro projeto (llmscout.tech) com o Nginx do
+# sistema (apt) + Certbot próprio ocupando as portas 80/443. Por isso o
+# TLS/proxy reverso do MediClaw NÃO roda em container aqui — django-api e
+# react-painel publicam suas portas só em 127.0.0.1, e quem fala com o
+# mundo é o Nginx do sistema (configs em nginx/system/, ver DEPLOY.md).
 
 services:
   postgres:
@@ -36,12 +42,17 @@ services:
       DB_PORT: "5432"
     volumes:
       - chroma_data:/app/chroma_data
-      - django_static:/app/staticfiles
+      - ./staticfiles:/app/staticfiles
+    ports:
+      - "127.0.0.1:8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
     networks: [mediclaw]
-    # Sem "ports:" — só o Nginx fala com o Django, via rede interna (porta 8000).
+    # Publicada só em 127.0.0.1 — o Nginx do SISTEMA (fora do compose) faz o
+    # proxy reverso para localhost:8000. "./staticfiles" é bind mount (não
+    # volume nomeado) para o Nginx do sistema conseguir servir /static/
+    # direto do disco, em vez de mexer com volumes Docker.
 
   react-painel:
     build:
@@ -51,46 +62,17 @@ services:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.mediclaw.com.br}
     container_name: mediclaw_painel
     restart: unless-stopped
-    depends_on:
-      - django-api
-    networks: [mediclaw]
-    # Sem "ports:" — só o Nginx fala com o Next.js, via rede interna (porta 3000).
-
-  nginx:
-    image: nginx:1.27-alpine
-    container_name: mediclaw_nginx
-    restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - django_static:/var/www/static:ro
-      - certbot_etc:/etc/letsencrypt:ro
-      - certbot_webroot:/var/www/certbot:ro
+      - "127.0.0.1:3000:3000"
     depends_on:
       - django-api
-      - react-painel
     networks: [mediclaw]
-
-  certbot:
-    image: certbot/certbot:latest
-    container_name: mediclaw_certbot
-    volumes:
-      - certbot_etc:/etc/letsencrypt
-      - certbot_webroot:/var/www/certbot
-    # Renova a cada 12h; o certbot só age quando o certificado está perto de expirar.
-    entrypoint:
-      - "/bin/sh"
-      - "-c"
-      - "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"
+    # Publicada só em 127.0.0.1 — o Nginx do SISTEMA faz o proxy reverso
+    # para localhost:3000 (ver nginx/system/mediclaw.com.br.conf).
 
 volumes:
   pgdata:
   chroma_data:
-  django_static:
-  certbot_etc:
-  certbot_webroot:
 
 networks:
   mediclaw:
