@@ -27,14 +27,15 @@ ENV NODE_ENV=production \
     PORT=3000 \
     HOSTNAME=0.0.0.0
 
-RUN useradd --create-home --uid 1000 nextjs
+# A imagem node:20-bookworm-slim já vem com um usuário "node" (UID 1000) —
+# reaproveita em vez de criar outro (useradd --uid 1000 falha: UID ocupada).
 
 # Saída "standalone" já traz um server.js mínimo + node_modules necessários
-COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nextjs /app/public ./public
+COPY --from=builder --chown=node:node /app/.next/standalone ./
+COPY --from=builder --chown=node:node /app/.next/static ./.next/static
+COPY --from=builder --chown=node:node /app/public ./public
 
-USER nextjs
+USER node
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
