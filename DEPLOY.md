@@ -18,7 +18,7 @@ IP `187.77.51.175`).
 ```
                               ┌───────────────────────────┐
  Internet ── 80/443 ──▶  Nginx DO SISTEMA (apt, TLS)      │
-                              │  ├─ mediclaw.com.br       │──▶ 127.0.0.1:3000 (react-painel)
+                              │  ├─ mediclaw.com.br       │──▶ 127.0.0.1:3001 (react-painel)
                               │  ├─ api.mediclaw.com.br   │──▶ 127.0.0.1:8000 (django-api)
                               │  └─ llmscout.tech         │──▶ 127.0.0.1:? (outro projeto)
                               └───────────────────────────┘
@@ -158,7 +158,7 @@ docker compose -f docker-compose.prod.yml build
 docker compose -f docker-compose.prod.yml up -d postgres django-api react-painel
 
 docker compose -f docker-compose.prod.yml ps   # confirme os 3 containers "Up"
-curl -I http://127.0.0.1:3000                  # react-painel respondendo
+curl -I http://127.0.0.1:3001                  # react-painel respondendo (3001: 3000 é do llmscout)
 curl -I http://127.0.0.1:8000/health/          # django-api respondendo
 ```
 
@@ -280,8 +280,9 @@ Para testar: `certbot renew --dry-run`.
   porta 80 está bloqueada no firewall/Hostinger. Confirme com `dig` e `curl -I http://mediclaw.com.br`.
 - **502 Bad Gateway no Nginx**: `django-api` ou `react-painel` ainda não
   subiram / falharam no build, ou não estão escutando em 127.0.0.1:8000 /
-  127.0.0.1:3000. Veja `docker compose -f docker-compose.prod.yml ps`, os
-  logs do serviço com problema, e `curl -I http://127.0.0.1:3000` /
+  127.0.0.1:3001 (3000 é do llmscout, não usar). Veja
+  `docker compose -f docker-compose.prod.yml ps`, os logs do serviço com
+  problema, e `curl -I http://127.0.0.1:3001` /
   `curl -I http://127.0.0.1:8000/health/` direto no VPS.
 - **"CSRF verification failed" no admin do Django**: confira se
   `CSRF_TRUSTED_ORIGINS` em `django-api/.env.production` inclui

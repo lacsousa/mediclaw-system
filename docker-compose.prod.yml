@@ -63,12 +63,13 @@ services:
     container_name: mediclaw_painel
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:3001:3000"
     depends_on:
       - django-api
     networks: [mediclaw]
-    # Publicada só em 127.0.0.1 — o Nginx do SISTEMA faz o proxy reverso
-    # para localhost:3000 (ver nginx/system/mediclaw.com.br.conf).
+    # Publicada em 127.0.0.1:3001 (não 3000 — o llmscout.tech já ocupa a
+    # 3000 nesse VPS). O Nginx do SISTEMA faz o proxy reverso para
+    # localhost:3001 (ver nginx/system/mediclaw.com.br.conf).
 
 volumes:
   pgdata:
