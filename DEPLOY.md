@@ -150,6 +150,12 @@ estão no `.gitignore`).
 ```bash
 cd /opt/mediclaw
 
+# pasta de staticfiles é bind mount (não volume nomeado) — o Docker cria
+# como root se não existir, mas o container roda como usuário "django"
+# (uid 1000). Sem isto, collectstatic falha com PermissionError.
+mkdir -p staticfiles
+chown -R 1000:1000 staticfiles
+
 # build das imagens de produção
 docker compose -f docker-compose.prod.yml build
 
