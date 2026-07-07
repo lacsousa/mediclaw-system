@@ -56,7 +56,10 @@ USER django
 
 EXPOSE 8000
 
+# Manda o Host correto — ALLOWED_HOSTS só libera api.mediclaw.com.br, então
+# "http://localhost:8000/health/" sem esse header sempre voltaria 400 e
+# marcaria o container como unhealthy mesmo com o Uvicorn saudável.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD curl -fsS http://localhost:8000/health/ || exit 1
+    CMD curl -fsS -H "Host: api.mediclaw.com.br" http://localhost:8000/health/ || exit 1
 
 ENTRYPOINT ["/app/entrypoint.prod.sh"]
