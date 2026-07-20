@@ -60,5 +60,34 @@ Diferenciais a repetir em todo material: respostas com fontes citadas (RAG, sem 
 
 Demonstrações agendadas/mês (métrica-chave) · visitas na landing · impressões e cliques no Search Console · seguidores/engajamento no LinkedIn.
 
+## 8. Como mostrar a demonstração: vídeo, animação ou demo interativa?
+
+**Recomendação: demo interativa clicável (não vídeo, não animação) como formato principal, com um vídeo curto de apoio.**
+
+Dados de mercado (2026) mostram que demos interativas convertem cerca de 2x mais que vídeo/PDF passivos e fecham 20–25% mais rápido, porque o médico clica e "faz" o fluxo em vez de assistir. Isso importa especialmente para o público do MediClaw: profissional de saúde tem pouco tempo e decide rápido se algo "parece confiável" — interagir com o produto (mesmo que com dados fictícios) gera mais confiança do que um vídeo editado.
+
+**Por que não só vídeo/animação:**
+- Vídeo é passivo — bom para redes sociais (LinkedIn, primeiro contato), ruim para converter em "quero testar".
+- Animação (motion graphics) é cara de produzir e refazer a cada nova feature; não mostra o produto real, o que reduz credibilidade em saúde (área que exige prova de que o sistema realmente funciona e é seguro).
+
+**Uso combinado recomendado:**
+1. **Demo interativa** (ferramenta abaixo) embutida na landing, seção "Ver como funciona" — visitante clica e navega pelo fluxo real (chat clínico → resposta com fonte citada → guardrail bloqueando prescrição) sem precisar de conta.
+2. **Vídeo curto (60–90s)**, gravado a partir da própria demo interativa, para LinkedIn e e-mail de prospecção.
+3. **Demo ao vivo** para reuniões 1:1 com clínicas maiores, guiada pelo time.
+
+### Ferramentas do mercado (sem afiliação com nenhuma delas)
+
+| Ferramenta | Ponto forte | Plano gratuito | Indicação |
+|---|---|---|---|
+| **Supademo** | Grava o fluxo real do MediClaw (screenshots/cliques) e gera demo interativa + vídeo a partir da mesma gravação; IA para personalizar texto | 5 demos, visualizações ilimitadas | **Melhor custo-benefício para começar** |
+| **Storylane** | Mais completo (HTML editável nos planos pagos, personalização por segmento, integrações de CRM); referência de mercado | 1 demo apenas | Migrar depois, se precisar de personalização por tipo de clínica |
+| **Arcade** | Visual mais "produto de design", cria demo e vídeo da mesma gravação | Trial limitado | Alternativa a Supademo, foco mais visual |
+| **HowdyGo** | Captura HTML real (não só screenshot), plano de entrada mais barato | Trial | Se quiser fidelidade máxima ao produto real |
+| **Loom / Tella** | Gravação de tela simples com narração — não é interativo, mas rápido de produzir | Gratuito/baixo custo | Só para o vídeo de apoio (item 2 acima), não como demo principal |
+
+**Ponto de atenção específico de saúde:** usar sempre dados de paciente fictícios/sintéticos na demo (nunca dados reais), e deixar isso explícito ("dados de demonstração, não é paciente real") — reforça o cuidado com LGPD que já é diferencial do produto.
+
+**Próximo passo prático:** gravar 3 fluxos no Supademo (free) — chat com resposta citando fonte, guardrail bloqueando prescrição, e busca na base de conhecimento — embutir o primeiro na landing e usar os outros dois em prospecção.
+
 ---
 *Sem vínculo com a marca LW Forge — divulgação por canais próprios do MediClaw.*
