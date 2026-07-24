@@ -17,6 +17,8 @@
 | E4 — Chat com IA | [epics/epic-4-chat.md](epics/epic-4-chat.md)               |
 | E5 — Perfil      | [epics/epic-5-profile.md](epics/epic-5-profile.md)         |
 | E6 — Admin       | [epics/epic-6-admin.md](epics/epic-6-admin.md)             |
+| E7 — Pacientes   | [epics/epic-7-patient.md](epics/epic-7-patient.md)         |
+| E8 — Admin de Organização (Pós-MVP) | [epics/epic-8-org-admin.md](epics/epic-8-org-admin.md) |
 
 ---
 
@@ -229,6 +231,29 @@
 - [ ] ESLint: `npm run lint` sem warnings (não verificado)
 - [ ] Testado em Chrome, Firefox e Safari (mobile)
 - [x] Disclaimer médico visível em todas as respostas do assistente
+
+---
+
+## Epic 8 — Administração de Organização (Pós-MVP)
+
+> Fora do escopo do PRD v1.0 (MVP acadêmico). Desenho para a fase de venda B2B, depende do backend Epic 9.
+> Referência: [epics/epic-8-org-admin.md](epics/epic-8-org-admin.md)
+
+### Story 8.1 — Hook `useOrganization` e `RequireOrgAdmin`
+- [ ] `hooks/useOrganization.ts` — `useOrganizationMembers(orgId)`
+- [ ] `components/auth/RequireOrgAdmin.tsx`
+- [ ] `Organization`, `OrganizationMember` em `src/types/api.ts`
+
+### Story 8.2 — Página `/admin/organizacao`
+- [ ] `components/admin/OrgMemberTable.tsx`
+- [ ] Convite de membro (modal) e remoção com confirmação
+
+### Story 8.3 — Escopo do documento em `/conhecimento`
+- [ ] Coluna "Escopo" em `KnowledgeTable.tsx`
+- [ ] Seletor "Só eu | Minha organização" no upload
+
+### Story 8.4 — Navegação
+- [ ] Link "Organização" na sidebar, visível apenas para `ORG_ADMIN`
 
 ---
 

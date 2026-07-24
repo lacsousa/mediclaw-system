@@ -19,6 +19,7 @@
 | Etapa 4 — Mecanismo RAG (admin + testes) | E5.2 — RAG Final | [epics/epic-5.2-rag-final.md](epics/epic-5.2-rag-final.md) |
 | Etapa 2 + Etapa 5 (lado backend) | E6 — Conversations & Chat | [epics/epic-6-chat.md](epics/epic-6-chat.md) |
 | Etapa 6 — Testes, Avaliação e Refinamento | E7 — Testing & Hardening | [epics/epic-7-testing.md](epics/epic-7-testing.md) |
+| Pós-MVP — RAG segmentado por conta | E9 — RAG Multi-tenant | [epics/epic-9-rag-multi-tenant.md](epics/epic-9-rag-multi-tenant.md) |
 
 ---
 
@@ -354,6 +355,32 @@
 - [x] `GET /health` retorna `ok` para todos os subsistemas
 - [ ] Documentação final atualizada (Epic 7 pendente)
 - [ ] Code review com a checklist de segurança (Epic 7 pendente)
+
+---
+
+## Epic 9 — RAG Segmentado por Conta (Pós-MVP)
+
+> Fora do escopo do PRD v1.0 (MVP acadêmico). Registrado aqui como próximo épico executável.
+> Referência: [epics/epic-9-rag-multi-tenant.md](epics/epic-9-rag-multi-tenant.md)
+
+### Story 9.1 — Isolamento por usuário
+- [ ] `KnowledgeDocument.owner` (FK para `User`)
+- [ ] `ingestion.ingest()` grava `owner_id` no metadata de cada chunk
+- [ ] `retriever.search()` exige `owner_id` e filtra via `where={"owner_id": ...}`
+- [ ] `orchestrator.generate()`/`generate_stream()` passam `doctor_id` como `owner_id`
+- [ ] Estratégia definida para documentos legados sem `owner_id`
+- [ ] Testes: usuário não recupera chunks de outro usuário
+
+### Story 9.2 — Organization e membership
+- [ ] App `apps/organizations/` com `Organization` e `OrganizationMembership`
+- [ ] Permission `IsOrgAdmin` em `apps/common/permissions.py`
+- [ ] Endpoints `GET/POST /api/v1/organizations/{id}/members`, `DELETE /api/v1/organizations/{id}/members/{user_id}`
+- [ ] Migrations aplicadas
+
+### Story 9.3 — Escopo de busca por organização
+- [ ] `retriever.search()` resolve escopo: usuário sem organização → próprio `owner_id`; usuário com organização → `owner_id` da organização
+- [ ] Upload de conhecimento permite indicar organização como dono (quando aplicável)
+- [ ] Testes: membro da organização A não acessa base da organização B; admin global continua com acesso irrestrito
 
 ---
 

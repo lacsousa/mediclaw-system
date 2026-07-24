@@ -545,6 +545,7 @@ Cobertura de formulários de auth, componentes de chat (input SSE, bubbles, disc
 | Dependência de API externa | Custo, latência, indisponibilidade do provedor | Fallback multi-provider, modelos locais |
 | ChromaDB single-node | Não escala horizontalmente | Migração para pgvector |
 | Post-guardrail em stream | Tokens já exibidos antes de bloqueio pós-LLM | Buffer ou classificação pré-stream |
+| Base de conhecimento RAG única e global | Todo usuário consulta a mesma coleção (`get_collection()` em `apps/rag/vector_store.py`); sem isolamento por conta | Segmentação por usuário/organização (item 9 dos Trabalhos futuros) |
 
 ---
 
@@ -560,6 +561,9 @@ Derivados do roadmap E7 e dos ADRs documentados:
 6. **App mobile** — reutilizar hooks e contrato REST/SSE existentes.
 7. **Testes E2E** — Playwright/Cypress cobrindo fluxos críticos médico → chat → paciente.
 8. **Internacionalização** — suporte multilíngue além do português atual.
+9. **RAG segmentado por conta de usuário** — hoje toda a aplicação consulta uma única coleção global no ChromaDB (`get_collection()` em `apps/rag/vector_store.py`); não há isolamento de base de conhecimento por usuário logado. Evolução planejada em duas etapas:
+   - **Etapa 1 — isolamento por usuário:** cada conta passa a ter sua própria coleção/namespace vetorial (ex.: `COLLECTION_NAME` sufixado por `user_id`, ou metadata filter `owner_id` na mesma coleção), garantindo que os documentos indexados por um profissional não vazem para outro.
+   - **Etapa 2 — multi-tenancy para venda B2B:** ao vender para clínicas/empresas, introduzir um perfil **admin de conta/organização** que gerencia quais usuários pertencem à empresa e quais RAGs (bases de conhecimento) cada usuário ou equipe pode acessar — análogo ao `IsAdminRole` já existente em `apps/accounts/`, mas escopado por organização em vez de global. Requer: modelo `Organization`/`Account`, vínculo `User → Organization`, e regra de autorização no `apps/rag/retriever.py` que filtre a busca vetorial pelo escopo (usuário, equipe ou organização) antes de consultar o LLM.
 
 ---
 
