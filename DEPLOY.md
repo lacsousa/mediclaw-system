@@ -221,19 +221,62 @@ cada `docker compose up`.
 
 ---
 
+## 6b. Migração de vhost: landing no domínio raiz (passo único)
+
+`mediclaw.com.br` (sem www) agora serve a landing page de marketing
+(`marketing/landing/index.html`, HTML estático, sem build). O painel
+(Next.js) continua em `www.mediclaw.com.br`. Isso exigiu dividir o vhost
+que antes tratava os dois nomes juntos em dois arquivos:
+
+- `nginx/system/mediclaw.com.br.conf` — bare domain, serve a landing
+  direto do disco (`root /opt/mediclaw/marketing/landing`).
+- `nginx/system/painel.mediclaw.com.br.conf` — só `www.mediclaw.com.br`,
+  proxy para o painel (o que antes estava no vhost único).
+
+O certificado já emitido (`certbot --nginx -d mediclaw.com.br -d
+www.mediclaw.com.br`) cobre os dois nomes via SAN, então **não precisa
+reemitir nada** — os dois arquivos reaproveitam os mesmos caminhos em
+`/etc/letsencrypt/live/mediclaw.com.br/`.
+
+Aplique no VPS (uma vez só; `deploy.sh` não toca em config de Nginx):
+
+```bash
+cd /opt/mediclaw
+git pull   # traz os dois .conf atualizados e marketing/landing/
+
+# substitui o vhost antigo (que tratava root + www juntos)
+cp nginx/system/mediclaw.com.br.conf /etc/nginx/sites-available/mediclaw.com.br
+
+# novo vhost, só para o painel em www
+cp nginx/system/painel.mediclaw.com.br.conf /etc/nginx/sites-available/painel.mediclaw.com.br
+ln -s /etc/nginx/sites-available/painel.mediclaw.com.br /etc/nginx/sites-enabled/
+
+nginx -t && systemctl reload nginx
+
+curl -I https://mediclaw.com.br        # landing
+curl -I https://www.mediclaw.com.br    # painel
+curl -I https://llmscout.tech          # confirma que o outro projeto no VPS não quebrou
+```
+
+Depois disso, atualizar o conteúdo da landing é só `git pull` (feito pelo
+próprio `deploy.sh`) — sem reload de Nginx, sem rebuild.
+
+---
+
 ## 7. Operação do dia a dia
 
 **Deploy de uma nova versão:**
 
 ```bash
 cd /opt/mediclaw
-git pull
-docker compose -f docker-compose.prod.yml build
-docker compose -f docker-compose.prod.yml up -d
+./deploy.sh
 ```
 
-O `entrypoint.prod.sh` do Django roda `migrate` e `collectstatic`
-automaticamente a cada subida do container.
+O script faz: checa `.env`/`.env.production` e árvore de trabalho limpa →
+`git pull` → testes (`pytest`, `vitest`) → build → `up -d` → health check
+em `django-api` (`/health/`) e `react-painel` → `docker image prune`.
+Flags: `--skip-tests`, `--skip-prune`. O `entrypoint.prod.sh` do Django roda
+`migrate` e `collectstatic` automaticamente a cada subida do container.
 
 **Logs:**
 
