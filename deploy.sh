@@ -82,10 +82,15 @@ $COMPOSE build
 $COMPOSE up -d postgres django-api react-painel
 
 echo "🩺 4. Verificando saúde dos serviços..."
+# O Django recusa Host desconhecido (ALLOWED_HOSTS) com 400 e redireciona
+# http->https (SECURE_SSL_REDIRECT) com 301. Bater direto em 127.0.0.1 sem
+# forjar os headers dá falso negativo — daí o "-H Host" e o
+# "X-Forwarded-Proto: https", mesmo truque do HEALTHCHECK do Dockerfile.
 wait_for() {
   local name="$1" url="$2" tries=30
+  shift 2
   for ((i = 1; i <= tries; i++)); do
-    if curl -sf -o /dev/null "$url"; then
+    if curl -sf -o /dev/null "$@" "$url"; then
       echo "   ✅ $name respondendo ($url)"
       return 0
     fi
@@ -97,7 +102,8 @@ wait_for() {
 }
 
 $COMPOSE ps
-wait_for django-api  "http://127.0.0.1:8000/health/" || exit 1
+wait_for django-api "http://127.0.0.1:8000/health/" \
+  -H "Host: api.mediclaw.com.br" -H "X-Forwarded-Proto: https" || exit 1
 wait_for react-painel "http://127.0.0.1:3001" || exit 1
 
 if [ "$SKIP_PRUNE" = false ]; then
