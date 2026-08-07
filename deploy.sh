@@ -50,8 +50,11 @@ if [ ! -f django-api/.env.production ]; then
   echo "❌ Falta django-api/.env.production (copie de .env.production.example). Abortando."
   exit 1
 fi
-if [ -n "$(git status --porcelain)" ]; then
-  echo "❌ Há mudanças não commitadas/staged no servidor. Resolva antes (git status)."
+# --untracked-files=no: "staticfiles/" e afins são gerados no servidor e
+# aparecem como untracked — não são motivo para abortar. O que importa é não
+# ter edição local em arquivo versionado, que o git pull sobrescreveria.
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+  echo "❌ Há mudanças locais em arquivos versionados no servidor. Resolva antes (git status)."
   exit 1
 fi
 
