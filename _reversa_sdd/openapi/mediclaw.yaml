@@ -1,0 +1,824 @@
+openapi: 3.0.3
+info:
+  title: MedicLaw API
+  version: v1
+  description: |
+    API REST do MediClaw — plataforma web com IA para apoio à longevidade e bem-estar preventivo.
+
+    **Restrição crítica:** a IA NUNCA emite diagnóstico médico ou prescrição. Toda resposta é
+    educativa e acompanhada de disclaimer.
+
+    Todos os endpoints (exceto auth e health) exigem JWT Bearer. As respostas usam envelope:
+    `{ "data": ..., "error": null, "meta": {...} }` (sucesso) ou
+    `{ "data": null, "error": { "code": "...", "message": "..." } }` (erro).
+    Escala de confiança: 🟢 CONFIRMADO | 🟡 INFERIDO | 🔴 LACUNA.
+  license:
+    name: Apache License 2.0
+servers:
+  - url: https://api.mediclaw.com
+security:
+  - BearerAuth: []
+tags:
+  - name: auth
+    description: Cadastro, login, refresh e perfil (/api/v1/auth/)
+  - name: patients
+    description: Gestão de pacientes (/api/v1/patients/)
+  - name: health-logs
+    description: Logs biométricos e resumo (/api/v1/health/)
+  - name: conversations
+    description: Conversas, mensagens e streaming (/api/v1/conversations/)
+  - name: knowledge
+    description: Base de conhecimento RAG (/api/v1/admin/knowledge/)
+  - name: admin
+    description: Administração e métricas (/api/v1/admin/)
+  - name: ops
+    description: Operacional
+
+paths:
+  # ─────────────────────────────── AUTH ───────────────────────────────
+  /api/v1/auth/register/:
+    post:
+      tags: [auth]
+      summary: Cadastro de usuário
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, name, accept_terms]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8, description: "≥ 8 chars, com letra e dígito" }
+                name: { type: string, maxLength: 120 }
+                accept_terms: { type: boolean, description: "Consentimento LGPD obrigatório" }
+      responses:
+        "201":
+          description: Cadastro realizado (JWT + usuário). Dispara criação da conversa "Bem-vindo".
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponse" }
+        "400":
+          $ref: "#/components/responses/ValidationError"
+  /api/v1/auth/login/:
+    post:
+      tags: [auth]
+      summary: Login (JWT access + refresh)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        "200":
+          description: Autenticado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponse" }
+        "400":
+          $ref: "#/components/responses/InvalidCredentials"
+  /api/v1/auth/refresh/:
+    post:
+      tags: [auth]
+      summary: Refresh do access token (simplejwt TokenRefreshView)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh]
+              properties:
+                refresh: { type: string }
+      responses:
+        "200":
+          description: Novo access token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access: { type: string }
+        "401":
+          $ref: "#/components/responses/InvalidToken"
+  /api/v1/auth/me/:
+    get:
+      tags: [auth]
+      summary: Perfil do usuário autenticado
+      responses:
+        "200":
+          description: Perfil (sempre 200, inclusive com first_name vazio)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/User" }
+                  error: { type: "null" }
+                  meta: { type: object, nullable: true }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      tags: [auth]
+      summary: Atualizar parcialmente nome e/ou e-mail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MeUpdate" }
+      responses:
+        "200":
+          description: Perfil atualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/User" }
+                  error: { type: "null" }
+                  meta: { type: object, nullable: true }
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    delete:
+      tags: [auth]
+      summary: Deletar a própria conta (cascata LGPD)
+      responses:
+        "204":
+          description: Conta removida; pacientes, conversas, mensagens e logs em cascata
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ─────────────────────────────── PATIENTS ───────────────────────────────
+  /api/v1/patients/:
+    get:
+      tags: [patients]
+      summary: Listar pacientes do médico
+      responses:
+        "200":
+          description: Lista de pacientes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Patient" }
+                  error: { type: "null" }
+                  meta: { type: object, nullable: true }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/patients/{patient_id}/:
+    parameters:
+      - { $ref: "#/components/parameters/PatientId" }
+    get:
+      tags: [patients]
+      summary: Detalhe do paciente
+      responses:
+        "200":
+          description: Paciente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Patient" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    put:
+      tags: [patients]
+      summary: Atualizar paciente (substituição)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PatientInput" }
+      responses:
+        "200":
+          description: Paciente atualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Patient" }
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [patients]
+      summary: Atualizar parcialmente o paciente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PatientInput" }
+      responses:
+        "200":
+          description: Paciente atualizado
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [patients]
+      summary: Excluir paciente (cascade de dados de saúde)
+      responses:
+        "204":
+          description: Excluído
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ─────────────────────────────── HEALTH LOGS ───────────────────────────────
+  /api/v1/health/summary/:
+    get:
+      tags: [health-logs]
+      summary: Resumo de saúde do paciente
+      parameters:
+        - name: patient_id
+          in: query
+          required: false
+          schema: { type: integer }
+        - name: window
+          in: query
+          required: false
+          schema: { type: integer, default: 7 }
+      responses:
+        "200":
+          description: Resumo agregado (peso, sono, atividade, IMC)
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/health/weight/:
+    $ref: "#/components/pathItems/HealthLogCollection"
+  /api/v1/health/sleep/:
+    $ref: "#/components/pathItems/HealthLogCollection"
+  /api/v1/health/activity/:
+    $ref: "#/components/pathItems/HealthLogCollection"
+  /api/v1/health/nutrition/:
+    $ref: "#/components/pathItems/HealthLogCollection"
+
+  # ─────────────────────────────── CONVERSATIONS ───────────────────────────────
+  /api/v1/conversations/:
+    get:
+      tags: [conversations]
+      summary: Listar conversas do médico
+      responses:
+        "200":
+          description: Lista de conversas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Conversation" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [conversations]
+      summary: Criar conversa (body ignorado — título fixo "Nova conversa")
+      responses:
+        "201":
+          description: Conversa criada com title="Nova conversa"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Conversation" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/conversations/{conv_id}/:
+    parameters:
+      - { $ref: "#/components/parameters/ConvId" }
+    get:
+      tags: [conversations]
+      summary: Detalhe da conversa com mensagens
+      responses:
+        "200":
+          description: Conversa + mensagens
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      conversation: { $ref: "#/components/schemas/Conversation" }
+                      messages:
+                        type: array
+                        items: { $ref: "#/components/schemas/Message" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [conversations]
+      summary: Excluir conversa (soft delete)
+      responses:
+        "204":
+          description: Soft-deletada (deleted_at preenchido)
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/v1/conversations/{conv_id}/messages/:
+    parameters:
+      - { $ref: "#/components/parameters/ConvId" }
+    post:
+      tags: [conversations]
+      summary: Enviar mensagem e obter resposta do assistente (não-stream)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content: { type: string, minLength: 1, maxLength: 4000 }
+      responses:
+        "201":
+          description: Resposta do assistente persistida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Message" }
+        "400":
+          description: Conteúdo inválido ou limite atingido
+          oneOf:
+            - $ref: "#/components/responses/ValidationError"
+            - $ref: "#/components/responses/ConversationFull"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/Throttled"
+  /api/v1/conversations/{conv_id}/stream/:
+    parameters:
+      - { $ref: "#/components/parameters/ConvId" }
+    get:
+      tags: [conversations]
+      summary: Streaming SSE da resposta do assistente
+      description: |
+        View Django pura (não DRF). Auth via query param `?token=<access>`. Eventos:
+        `citation` → `token*` → `done` (ou `error`).
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: text/event-stream com eventos citation/token/done
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                example: |
+                  event: token
+                  data: {"type":"token","content":"Olá"}
+
+                  event: done
+                  data: {"type":"done","tokens_used":42,"blocked":false}
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ─────────────────────────────── KNOWLEDGE (RAG) ───────────────────────────────
+  /api/v1/admin/knowledge/upload/:
+    post:
+      tags: [knowledge]
+      summary: Upload e ingestão de documento (PDF/MD/TXT, máx 10MB)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                title: { type: string, maxLength: 200 }
+      responses:
+        "201":
+          description: Documento indexado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id: { type: integer }
+                      title: { type: string }
+                      status: { $ref: "#/components/schemas/DocumentStatus" }
+                      chunk_count: { type: integer, nullable: true }
+        "400":
+          description: Arquivo ausente, grande ou tipo inválido
+          oneOf:
+            - $ref: "#/components/responses/ValidationError"
+            - { $ref: "#/components/responses/FileTooLarge" }
+            - { $ref: "#/components/responses/InvalidFileType" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/admin/knowledge/:
+    get:
+      tags: [knowledge]
+      summary: Listar documentos da base
+      responses:
+        "200":
+          description: Lista de documentos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/DocumentSummary" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/admin/knowledge/{doc_id}/status/:
+    parameters:
+      - { $ref: "#/components/parameters/DocId" }
+    get:
+      tags: [knowledge]
+      summary: Status de indexação do documento
+      responses:
+        "200":
+          description: Status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id: { type: integer }
+                      status: { $ref: "#/components/schemas/DocumentStatus" }
+                      chunk_count: { type: integer, nullable: true }
+                      error_message: { type: string, nullable: true }
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/admin/knowledge/{doc_id}/:
+    parameters:
+      - { $ref: "#/components/parameters/DocId" }
+    delete:
+      tags: [knowledge]
+      summary: Excluir documento (remove chunks do ChromaDB e o registro)
+      responses:
+        "204":
+          description: Excluído
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Documento em PROCESSING — aguarde concluir a indexação
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: "null" }
+                  error:
+                    type: object
+                    properties:
+                      code: { type: string, example: CONFLICT }
+                      message: { type: string }
+
+  # ─────────────────────────────── ADMIN ───────────────────────────────
+  /api/v1/admin/users/:
+    post:
+      tags: [admin]
+      summary: Criar usuário (role ADMIN)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+                first_name: { type: string }
+      responses:
+        "201":
+          description: Usuário criado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/User" }
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /api/v1/admin/metrics/:
+    get:
+      tags: [admin]
+      summary: Métricas agregadas do dia (role ADMIN)
+      responses:
+        "200":
+          description: Métricas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      users_total: { type: integer }
+                      conversations_total: { type: integer }
+                      messages_today: { type: integer }
+                      tokens_today: { type: integer }
+                      guardrail_blocks_today: { type: integer }
+                      kb_documents_indexed: { type: integer }
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  # ─────────────────────────────── OPS ───────────────────────────────
+  /health/:
+    get:
+      tags: [ops]
+      summary: Health check
+      security: []
+      responses:
+        "200":
+          description: Serviço saudável
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    PatientId:
+      name: patient_id
+      in: path
+      required: true
+      schema: { type: integer }
+    ConvId:
+      name: conv_id
+      in: path
+      required: true
+      schema: { type: integer }
+    DocId:
+      name: doc_id
+      in: path
+      required: true
+      schema: { type: integer }
+  pathItems:
+    HealthLogCollection:
+      get:
+        tags: [health-logs]
+        summary: Listar logs do tipo (por patient_id query ou do paciente da conversa)
+        parameters:
+          - name: patient_id
+            in: query
+            required: false
+            schema: { type: integer }
+        responses:
+          "200":
+            description: Lista de logs
+          "401":
+            $ref: "#/components/responses/Unauthorized"
+      post:
+        tags: [health-logs]
+        summary: Criar log
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthLogInput" }
+        responses:
+          "201":
+            description: Log criado
+          "400":
+            $ref: "#/components/responses/ValidationError"
+          "401":
+            $ref: "#/components/responses/Unauthorized"
+  schemas:
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        email: { type: string, format: email }
+        first_name: { type: string, nullable: true }
+        role:
+          type: string
+          enum: [USER, ADMIN]
+        accepted_terms_at: { type: string, format: date-time, nullable: true }
+    MeUpdate:
+      type: object
+      properties:
+        name: { type: string, nullable: true }
+        email: { type: string, format: email, nullable: true }
+    Patient:
+      type: object
+      properties:
+        id: { type: integer }
+        doctor_id: { type: integer }
+        first_name: { type: string }
+        last_name: { type: string, nullable: true }
+        date_of_birth: { type: string, format: date, nullable: true }
+        sex: { type: string, nullable: true }
+        height_cm: { type: number, nullable: true }
+        profile: { type: object, nullable: true }
+        created_at: { type: string, format: date-time }
+    PatientInput:
+      type: object
+      properties:
+        first_name: { type: string }
+        last_name: { type: string, nullable: true }
+        date_of_birth: { type: string, format: date, nullable: true }
+        sex: { type: string, nullable: true }
+        height_cm: { type: number, nullable: true }
+        profile: { type: object, nullable: true }
+    Conversation:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        doctor_id: { type: integer }
+        patient_id: { type: integer, nullable: true }
+        patient_first_name: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    Message:
+      type: object
+      properties:
+        id: { type: integer }
+        conversation_id: { type: integer }
+        role: { type: string, enum: [user, assistant] }
+        content: { type: string }
+        tokens_used: { type: integer }
+        blocked_by_guardrail: { type: boolean }
+        metadata: { type: object, nullable: true }
+        created_at: { type: string, format: date-time }
+    HealthLogInput:
+      type: object
+      description: Campos variam por tipo (weight/sleep/activity/nutrition)
+      properties:
+        patient_id: { type: integer }
+        value: { type: number }
+        recorded_at: { type: string, format: date-time }
+        metadata: { type: object }
+    DocumentStatus:
+      type: string
+      enum: [PROCESSING, INDEXED, ERROR]
+    DocumentSummary:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        status: { $ref: "#/components/schemas/DocumentStatus" }
+        chunk_count: { type: integer, nullable: true }
+        created_at: { type: string, format: date-time }
+    AuthResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            access: { type: string }
+            refresh: { type: string }
+            user: { $ref: "#/components/schemas/User" }
+  responses:
+    ValidationError:
+      description: Payload inválido
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data: { type: "null" }
+              error:
+                type: object
+                properties:
+                  code: { type: string, example: VALIDATION_ERROR }
+                  message: { type: string }
+                  details: { type: object }
+    InvalidCredentials:
+      description: Login falhou
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code: { type: string, example: INVALID_CREDENTIALS }
+    Unauthorized:
+      description: Token ausente, inválido ou expirado
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: INVALID_TOKEN
+                  message: { type: string }
+    InvalidToken:
+      description: Token inválido ou expirado
+    Forbidden:
+      description: Permissão insuficiente
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code: { type: string, example: FORBIDDEN }
+    NotFound:
+      description: Recurso não encontrado
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code: { type: string, example: NOT_FOUND }
+    ConversationFull:
+      description: Conversa com limite de mensagens atingido
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code: { type: string, example: CONVERSATION_FULL }
+    FileTooLarge:
+      description: Upload acima de 10MB
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code: { type: string, example: FILE_TOO_LARGE }
+    InvalidFileType:
+      description: Tipo de arquivo não aceito
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code: { type: string, example: INVALID_FILE_TYPE }
+    Throttled:
+      description: Muitas requisições (throttle de chat 10/min)
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code: { type: string, example: THROTTLED }

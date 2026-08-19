@@ -1,0 +1,1000 @@
+{
+  "generated_at": "2026-08-19T15:10:00Z",
+  "modules": [
+    {
+      "name": "accounts",
+      "path": "apps/accounts",
+      "purpose": "Usuários, perfis e autenticação JWT (custom User, cadastro, login, /me, criação admin)",
+      "primary_files": [
+        "apps/accounts/models.py",
+        "apps/accounts/serializers.py",
+        "apps/accounts/views.py",
+        "apps/accounts/urls.py",
+        "apps/accounts/services/persist.py"
+      ],
+      "functions": [
+        {
+          "name": "register",
+          "file": "apps/accounts/views.py:21",
+          "params": ["request: HttpRequest"],
+          "returns": "201 {access, refresh, user}",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "login",
+          "file": "apps/accounts/views.py:39",
+          "params": ["request: HttpRequest"],
+          "returns": "200 {access, refresh, user}",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "admin_create_user",
+          "file": "apps/accounts/views.py:58",
+          "params": ["request: HttpRequest"],
+          "returns": "201 UserSerializer",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "me",
+          "file": "apps/accounts/views.py:66",
+          "params": ["request: HttpRequest"],
+          "returns": "200 UserSerializer | 204",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "persist_user_name",
+          "file": "apps/accounts/services/persist.py:9",
+          "params": ["user_id: int", "name: str"],
+          "returns": "dict {'first_name': str}",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "UserManager.create_user",
+          "file": "apps/accounts/models.py:6",
+          "params": ["email: str", "password: str|None", "**extra"],
+          "returns": "User",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "UserManager.create_superuser",
+          "file": "apps/accounts/models.py:15",
+          "params": ["email: str", "password: str|None", "**extra"],
+          "returns": "User (is_staff, is_superuser, role=ADMIN)",
+          "confidence": "confirmed"
+        }
+      ],
+      "entities": [
+        {
+          "name": "User",
+          "fields": [
+            { "name": "id", "type": "BigAutoField", "required": true },
+            { "name": "email", "type": "EmailField(254) unique", "required": true },
+            { "name": "password", "type": "CharField(128)", "required": true },
+            { "name": "first_name", "type": "CharField(150)", "required": false },
+            { "name": "username", "type": "CharField(150) blank", "required": false },
+            { "name": "role", "type": "CharField(10) USER|ADMIN", "required": true, "default": "USER" },
+            { "name": "accepted_terms_at", "type": "DateTimeField", "required": false },
+            { "name": "is_active", "type": "BooleanField", "required": true, "default": true },
+            { "name": "is_staff", "type": "BooleanField", "required": true, "default": false },
+            { "name": "is_superuser", "type": "BooleanField", "required": true, "default": false },
+            { "name": "date_joined", "type": "DateTimeField", "required": true },
+            { "name": "last_login", "type": "DateTimeField", "required": false }
+          ],
+          "confidence": "confirmed"
+        }
+      ],
+      "business_rules": [
+        {
+          "description": "Senha ≥ 8 chars com pelo menos uma letra e um dígito (PASSWORD_RX)",
+          "location": "apps/accounts/serializers.py:6",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Email único e case-insensitive, normalizado para minúsculas no cadastro e login",
+          "location": "apps/accounts/serializers.py:28; views.py:40",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Credencial inválida e usuário inativo retornam o mesmo erro INVALID_CREDENTIALS 401",
+          "location": "apps/accounts/views.py:43",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Consentimento LGPD: accept_terms obrigatório; accepted_terms_at gravado no cadastro",
+          "location": "apps/accounts/serializers.py:22; serializers.py:37",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Me PATCH atualiza apenas campos enviados via update_fields",
+          "location": "apps/accounts/views.py:79-87",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Deletar conta remove dados sensíveis em cascata (on_delete=CASCADE)",
+          "location": "apps/accounts/views.py:92; apps/patients/models.py:11; apps/health_logs/models.py",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Conversa de boas-vindas criada após cadastro, idempotente, pulada para ADMIN",
+          "location": "apps/conversations/services/welcome.py:23",
+          "confidence": "confirmed"
+        }
+      ],
+      "dependencies": [
+        "rest_framework_simplejwt",
+        "apps.common.exceptions.AppError",
+        "apps.common.permissions.IsAdminRole",
+        "apps.audit.services.log.record",
+        "apps.conversations.services.welcome.ensure_welcome_conversation"
+      ],
+      "algorithms": [
+        "Autenticação JWT: RefreshToken.for_user gera access+refresh; rotas exigem Authorization: Bearer",
+        "Cascade delete do usuário remove pacientes, logs biométricos e mensagens (LGPD)"
+      ],
+      "complexity": "low"
+    },
+    {
+      "name": "patients",
+      "path": "apps/patients",
+      "purpose": "CRUD de pacientes por médico com anotações agregadas e dedup via captura no chat",
+      "primary_files": [
+        "apps/patients/models.py",
+        "apps/patients/serializers.py",
+        "apps/patients/views.py",
+        "apps/patients/urls.py",
+        "apps/patients/services/patient.py"
+      ],
+      "functions": [
+        {
+          "name": "list_patients",
+          "file": "apps/patients/views.py:38",
+          "params": ["request: HttpRequest"],
+          "returns": "{results, count, next} paginação manual",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "patient_detail",
+          "file": "apps/patients/views.py:56",
+          "params": ["request: HttpRequest", "patient_id: int"],
+          "returns": "200 PatientDetailSerializer | 204",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "_annotate_patients",
+          "file": "apps/patients/views.py:16",
+          "params": ["qs: QuerySet[Patient]"],
+          "returns": "QuerySet anotado (conversation_count, last_seen_at, latest_weight_kg)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "ensure_or_create_patient",
+          "file": "apps/patients/services/patient.py:10",
+          "params": ["conversation_id: int", "doctor_id: int", "first_name: str"],
+          "returns": "Patient",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "resolve_patient_dob",
+          "file": "apps/patients/services/patient.py:45",
+          "params": ["conversation_id: int", "doctor_id: int", "birth_date: date"],
+          "returns": "Patient | None",
+          "confidence": "confirmed"
+        }
+      ],
+      "entities": [
+        {
+          "name": "Patient",
+          "fields": [
+            { "name": "id", "type": "BigAutoField", "required": true },
+            { "name": "doctor", "type": "FK -> accounts.User", "required": true },
+            { "name": "first_name", "type": "CharField(120)", "required": true },
+            { "name": "birth_date", "type": "DateField", "required": false },
+            { "name": "biological_sex", "type": "CharField(10) M|F|OTHER", "required": false },
+            { "name": "height_cm", "type": "PositiveSmallIntegerField", "required": false },
+            { "name": "created_at", "type": "DateTimeField auto_now_add", "required": true },
+            { "name": "updated_at", "type": "DateTimeField auto_now", "required": true }
+          ],
+          "confidence": "confirmed"
+        }
+      ],
+      "business_rules": [
+        {
+          "description": "Toda consulta filtra doctor=request.user; pk fora do escopo retorna 404 NOT_FOUND",
+          "location": "apps/patients/views.py:41, 58",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Dedup parcial: UniqueConstraint(doctor, first_name, birth_date) só quando birth_date preenchido",
+          "location": "apps/patients/models.py:24-30",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Cada conversa cria Patient próprio (tentativo); ao capturar DOB, merge com paciente de mesmo nome+DOB e deleta tentativo sem dados",
+          "location": "apps/patients/services/patient.py:30, 45",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Não há endpoint POST de paciente — criação ocorre via serviços do chat",
+          "location": "apps/patients/urls.py",
+          "confidence": "confirmed"
+        }
+      ],
+      "dependencies": [
+        "apps.health_logs.models.WeightLog",
+        "apps.conversations.models.Conversation",
+        "apps.common.exceptions.AppError",
+        "apps.common.logging_config"
+      ],
+      "algorithms": [
+        "Anotação com Subquery/OuterRef para latest_weight_kg (top-1 por measured_at) sem N+1",
+        "Merge de paciente tentativo ao capturar birth_date (dedup por nome iexact + DOB)"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "name": "health_logs",
+      "path": "apps/health_logs",
+      "purpose": "Registro e agregação de logs biométricos (peso, sono, atividade, nutrição) por paciente",
+      "primary_files": [
+        "apps/health_logs/models.py",
+        "apps/health_logs/serializers.py",
+        "apps/health_logs/views.py",
+        "apps/health_logs/urls.py",
+        "apps/health_logs/services/aggregate.py",
+        "apps/health_logs/services/persist.py"
+      ],
+      "functions": [
+        {
+          "name": "WeightLogViewSet | SleepLogViewSet | ActivityLogViewSet | NutritionNoteViewSet",
+          "file": "apps/health_logs/views.py:55",
+          "params": ["request", "pk?"],
+          "returns": "ModelViewSet (GET/POST/DELETE)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "health_summary",
+          "file": "apps/health_logs/views.py:87",
+          "params": ["request: HttpRequest"],
+          "returns": "dict agregado (7/30 dias)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "summarize",
+          "file": "apps/health_logs/services/aggregate.py:9",
+          "params": ["patient_id: int", "window_days: int = 7"],
+          "returns": "dict com agregações",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "persist_weight_log",
+          "file": "apps/health_logs/services/persist.py:21",
+          "params": ["patient_id: int", "data: dict"],
+          "returns": "dict (id, value_kg, measured_at)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "persist_sleep_log",
+          "file": "apps/health_logs/services/persist.py:39",
+          "params": ["patient_id: int", "data: dict"],
+          "returns": "dict (id, duration_hours, quality_score, started_at)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "persist_activity_log",
+          "file": "apps/health_logs/services/persist.py:62",
+          "params": ["patient_id: int", "data: dict"],
+          "returns": "dict (id, type, duration_min, performed_at)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "persist_nutrition_note",
+          "file": "apps/health_logs/services/persist.py:87",
+          "params": ["patient_id: int", "data: dict"],
+          "returns": "dict (id, note, logged_at)",
+          "confidence": "confirmed"
+        }
+      ],
+      "entities": [
+        {
+          "name": "WeightLog",
+          "fields": [
+            { "name": "id", "type": "BigAutoField", "required": true },
+            { "name": "patient", "type": "FK -> patients.Patient", "required": true },
+            { "name": "value_kg", "type": "DecimalField(5,2)", "required": true },
+            { "name": "measured_at", "type": "DateTimeField", "required": true }
+          ],
+          "confidence": "confirmed"
+        },
+        {
+          "name": "SleepLog",
+          "fields": [
+            { "name": "id", "type": "BigAutoField", "required": true },
+            { "name": "patient", "type": "FK -> patients.Patient", "required": true },
+            { "name": "duration_hours", "type": "DecimalField(4,2)", "required": true },
+            { "name": "quality_score", "type": "PositiveSmallIntegerField", "required": true },
+            { "name": "started_at", "type": "DateTimeField", "required": true }
+          ],
+          "confidence": "confirmed"
+        },
+        {
+          "name": "ActivityLog",
+          "fields": [
+            { "name": "id", "type": "BigAutoField", "required": true },
+            { "name": "patient", "type": "FK -> patients.Patient", "required": true },
+            { "name": "type", "type": "CharField(40)", "required": true },
+            { "name": "duration_min", "type": "PositiveSmallIntegerField", "required": true },
+            { "name": "performed_at", "type": "DateTimeField", "required": true }
+          ],
+          "confidence": "confirmed"
+        },
+        {
+          "name": "NutritionNote",
+          "fields": [
+            { "name": "id", "type": "BigAutoField", "required": true },
+            { "name": "patient", "type": "FK -> patients.Patient", "required": true },
+            { "name": "note", "type": "TextField", "required": true },
+            { "name": "logged_at", "type": "DateTimeField", "required": true }
+          ],
+          "confidence": "confirmed"
+        }
+      ],
+      "business_rules": [
+        {
+          "description": "Logs são append-only: sem PATCH/PUT (http_method_names get/post/delete)",
+          "location": "apps/health_logs/views.py:60",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Ownership: logs sempre filtrados por patient_id + doctor=request.user; acesso a outro paciente -> 404",
+          "location": "apps/health_logs/views.py:19-24",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Peso plausível 20-400 kg; timestamps não podem ser no futuro",
+          "location": "apps/health_logs/serializers.py:13; services/persist.py:15",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Janela de summary limitada a 7 ou 30 dias (padrão 7)",
+          "location": "apps/health_logs/views.py:93",
+          "confidence": "confirmed"
+        }
+      ],
+      "dependencies": [
+        "apps.patients.models.Patient",
+        "apps.common.exceptions.AppError",
+        "apps.ai_engine.services.user_data_capture (chamador de persist_*)",
+        "apps.ai_engine.skills.health_summary (chamador de summarize)"
+      ],
+      "algorithms": [
+        "summarize: avg sono, avg qualidade, última + tendência de peso, sum atividade, top-3 notas",
+        "Validações duplicadas entre serializers (REST) e services.persist (chat) com regras divergentes"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "name": "conversations",
+      "path": "apps/conversations",
+      "purpose": "Histórico de chat com a IA: CRUD de conversas (soft-delete), envio de mensagens REST e streaming SSE, serialização manual e conversa de boas-vindas",
+      "primary_files": [
+        "apps/conversations/models.py",
+        "apps/conversations/serializers.py",
+        "apps/conversations/views.py",
+        "apps/conversations/urls.py",
+        "apps/conversations/services/chat.py",
+        "apps/conversations/services/welcome.py"
+      ],
+      "functions": [
+        {
+          "name": "list_create",
+          "file": "apps/conversations/views.py:57",
+          "params": ["request: HttpRequest"],
+          "returns": "200 {results, count, next} | 201 conv",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "detail",
+          "file": "apps/conversations/views.py:79",
+          "params": ["request: HttpRequest", "conv_id: int"],
+          "returns": "200 {conversation, messages} | 204 (soft-delete)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "post_message",
+          "file": "apps/conversations/views.py:103",
+          "params": ["request: HttpRequest", "conv_id: int"],
+          "returns": "201 MessageSerializer",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "stream",
+          "file": "apps/conversations/views.py:120",
+          "params": ["request: HttpRequest", "conv_id: int"],
+          "returns": "StreamingHttpResponse SSE (view Django pura, auth ?token=)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "send_message",
+          "file": "apps/conversations/services/chat.py:10",
+          "params": ["user", "conversation: Conversation", "content: str"],
+          "returns": "Message (assistente)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "ensure_welcome_conversation",
+          "file": "apps/conversations/services/welcome.py:23",
+          "params": ["user"],
+          "returns": "Conversation | None",
+          "confidence": "confirmed"
+        }
+      ],
+      "entities": [
+        {
+          "name": "Conversation",
+          "fields": [
+            { "name": "id", "type": "BigAutoField", "required": true },
+            { "name": "doctor", "type": "FK -> accounts.User", "required": true },
+            { "name": "patient", "type": "FK -> patients.Patient SET_NULL", "required": false },
+            { "name": "title", "type": "CharField(200)", "required": false },
+            { "name": "created_at", "type": "DateTimeField auto_now_add", "required": true },
+            { "name": "updated_at", "type": "DateTimeField auto_now", "required": true },
+            { "name": "deleted_at", "type": "DateTimeField (soft delete)", "required": false }
+          ],
+          "confidence": "confirmed"
+        },
+        {
+          "name": "Message",
+          "fields": [
+            { "name": "id", "type": "BigAutoField", "required": true },
+            { "name": "conversation", "type": "FK -> conversations.Conversation", "required": true },
+            { "name": "role", "type": "CharField(10) USER|ASSISTANT|SYSTEM", "required": true },
+            { "name": "content", "type": "TextField", "required": true },
+            { "name": "tokens_used", "type": "PositiveIntegerField", "required": false },
+            { "name": "blocked_by_guardrail", "type": "BooleanField", "required": true, "default": false },
+            { "name": "metadata", "type": "JSONField", "required": false, "default": "{}" },
+            { "name": "created_at", "type": "DateTimeField auto_now_add", "required": true }
+          ],
+          "confidence": "confirmed"
+        }
+      ],
+      "business_rules": [
+        {
+          "description": "Ownership: toda query filtra doctor=request.user; conversa de outro médico retorna 404 NOT_FOUND",
+          "location": "apps/conversations/views.py:66, 84, 109, 154; services/chat.py:11",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Soft delete via deleted_at; ActiveConversationManager exclui por padrão, all_objects inclui",
+          "location": "apps/conversations/models.py:5-10, 30-31",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Limite de mensagens: count() >= MAX_MESSAGES -> 400 CONVERSATION_FULL (views hardcoda 50; service usa env MAX_MESSAGES_PER_CONVERSATION)",
+          "location": "apps/conversations/views.py:22, 177; services/chat.py:7, 14",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Título auto-definido para prompt[:80] na primeira mensagem (se vazio ou 'Nova conversa')",
+          "location": "apps/conversations/views.py:190-192",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Turno persistido: mensagem USER antes do LLM; ASSISTANT no evento done com metadata (citations, onboarding_mode, missing_basics, data_capture)",
+          "location": "apps/conversations/views.py:189, 237-244; services/chat.py:19",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Stream SSE autentica via AccessToken em ?token= (EventSource não envia headers); view Django pura sem throttle do DRF",
+          "location": "apps/conversations/views.py:120-142",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Boas-vindas estática sem LLM, idempotente, pulada para role ADMIN, com DISCLAIMER injetado",
+          "location": "apps/conversations/services/welcome.py:23-50",
+          "confidence": "confirmed"
+        }
+      ],
+      "dependencies": [
+        "apps.ai_engine.orchestrator (generate, generate_stream)",
+        "apps.ai_engine.prompts.DISCLAIMER",
+        "apps.common.exceptions.AppError",
+        "apps.common.logging_config",
+        "rest_framework_simplejwt (AccessToken no stream)"
+      ],
+      "algorithms": [
+        "Streaming SSE: itera generate_stream e persiste ASSISTANT apenas no evento done, com metadata de citações e onboarding",
+        "Soft delete com manager duplo (objects vs all_objects)",
+        "Serialização manual por helpers _serialize_* em list/detail/stream (serializers usados apenas em post_message)"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "name": "ai_engine",
+      "path": "apps/ai_engine",
+      "purpose": "Orquestração da camada de IA: prompts (system + histórico + RAG + health_summary), guardrails de entrada/saída, captura automática de dados do paciente (regex + LLM) e providers plugáveis (OpenAI/Gemini). Sem endpoints próprios.",
+      "primary_files": [
+        "apps/ai_engine/orchestrator.py",
+        "apps/ai_engine/guardrails.py",
+        "apps/ai_engine/prompts.py",
+        "apps/ai_engine/providers/__init__.py",
+        "apps/ai_engine/providers/base.py",
+        "apps/ai_engine/providers/openai_provider.py",
+        "apps/ai_engine/providers/gemini_provider.py",
+        "apps/ai_engine/services/user_data_capture.py",
+        "apps/ai_engine/services/capture_rules.py",
+        "apps/ai_engine/services/capture_models.py",
+        "apps/ai_engine/services/data_extraction_llm.py",
+        "apps/ai_engine/skills/bmi.py",
+        "apps/ai_engine/skills/unit_convert.py",
+        "apps/ai_engine/skills/health_summary.py",
+        "apps/ai_engine/skills/user_readiness.py"
+      ],
+      "functions": [
+        {
+          "name": "generate",
+          "file": "apps/ai_engine/orchestrator.py:183",
+          "params": ["user_id: int", "conversation_id: int", "query: str", "is_first_message: bool = False"],
+          "returns": "GenerateResult",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "generate_stream",
+          "file": "apps/ai_engine/orchestrator.py:261",
+          "params": ["user_id: int", "conversation_id: int", "query: str", "is_first_message: bool = False"],
+          "returns": "Iterator[dict] (eventos SSE: citation, token, done, error)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "_resolve_messages",
+          "file": "apps/ai_engine/orchestrator.py:158",
+          "params": ["patient_id: int|None", "conversation_id: int", "query: str", "is_first_message: bool", "capture: CaptureResult|None"],
+          "returns": "tuple[messages, citations, onboarding_mode, missing_basics]",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "check_input",
+          "file": "apps/ai_engine/guardrails.py:135",
+          "params": ["text: str"],
+          "returns": "GuardrailResult (urgency/diagnosis/prescription/gibberish)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "check_output",
+          "file": "apps/ai_engine/guardrails.py:147",
+          "params": ["text: str"],
+          "returns": "GuardrailResult (forbidden_output)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "get_provider",
+          "file": "apps/ai_engine/providers/__init__.py:4",
+          "params": [],
+          "returns": "OpenAIProvider | GeminiProvider (env LLM_PROVIDER)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "OpenAIProvider.stream / complete / complete_json",
+          "file": "apps/ai_engine/providers/openai_provider.py:16",
+          "params": ["messages: list[ChatMessage]", "max_tokens: int"],
+          "returns": "Iterator[str] / (str, int) / str",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "GeminiProvider.stream / complete / complete_json",
+          "file": "apps/ai_engine/providers/gemini_provider.py:42",
+          "params": ["messages: list[ChatMessage]", "max_tokens: int"],
+          "returns": "Iterator[str] / (str, int) / str (via _build/_config)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "capture_from_message",
+          "file": "apps/ai_engine/services/user_data_capture.py:26",
+          "params": ["conversation_id: int", "doctor_id: int", "text: str"],
+          "returns": "CaptureResult",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "parse_rules",
+          "file": "apps/ai_engine/services/capture_rules.py:108",
+          "params": ["text: str"],
+          "returns": "ExtractedUserData (regex-based)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "extract_with_llm",
+          "file": "apps/ai_engine/services/data_extraction_llm.py:58",
+          "params": ["text: str"],
+          "returns": "ExtractedUserData | None",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "merge_extracted",
+          "file": "apps/ai_engine/services/data_extraction_llm.py:75",
+          "params": ["primary: ExtractedUserData", "secondary: ExtractedUserData"],
+          "returns": "ExtractedUserData (rules win; LLM preenche gaps)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "calculate_bmi",
+          "file": "apps/ai_engine/skills/bmi.py:9",
+          "params": ["weight_kg: float", "height_cm: float"],
+          "returns": "dict {bmi, category}",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "convert_units",
+          "file": "apps/ai_engine/skills/unit_convert.py:15",
+          "params": ["value: float", "from_unit: str", "to_unit: str"],
+          "returns": "dict {value, unit} | ValueError",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "get_user_readiness",
+          "file": "apps/ai_engine/skills/user_readiness.py:42",
+          "params": ["patient_id: int|None"],
+          "returns": "UserReadiness",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "health_summary",
+          "file": "apps/ai_engine/skills/health_summary.py:4",
+          "params": ["patient_id: int|None", "window: int = 7"],
+          "returns": "dict (delega a aggregate.summarize)",
+          "confidence": "confirmed"
+        }
+      ],
+      "entities": [],
+      "business_rules": [
+        {
+          "description": "Guardrail de entrada em ordem fixa: urgency → diagnosis → prescription → gibberish; primeiro match vence com resposta canônica + DISCLAIMER",
+          "location": "apps/ai_engine/guardrails.py:136-143",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Onboarding: profile incompleto + primeira mensagem → modo focus (só coleta de dados); incompleto + não-primeira → modo soft (responde + lembrete)",
+          "location": "apps/ai_engine/orchestrator.py:165-179",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Captura rules-first: regex têm precedência sobre LLM; merge_extracted só preenche gaps (None) do secundário",
+          "location": "apps/ai_engine/services/data_extraction_llm.py:75",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Prontidão mínima do perfil: nome + (birth_date, biological_sex, height_cm) + ao menos 1 WeightLog",
+          "location": "apps/ai_engine/skills/user_readiness.py:5, 74",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Resposta com viés clínico deve terminar com DISCLAIMER; se não termina, é anexado",
+          "location": "apps/ai_engine/orchestrator.py:241-242; prompts.py:57",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Nunca prescrever medicamento/dose/posologia nem fechar diagnóstico; IA trata médico como colega e paciente em terceira pessoa (system prompt)",
+          "location": "apps/ai_engine/prompts.py:1-21",
+          "confidence": "confirmed"
+        }
+      ],
+      "dependencies": [
+        "apps.rag.retriever.search",
+        "apps.health_logs.services.aggregate.summarize",
+        "apps.health_logs.services.persist.*",
+        "apps.patients.services.patient (ensure_or_create_patient, resolve_patient_dob)",
+        "apps.patients.models.Patient",
+        "apps.conversations.models (Message, Conversation)",
+        "apps.audit.services.log.record",
+        "apps.common.exceptions (AppError, LLMProviderError)",
+        "apps.common.logging_config",
+        "openai", "google.genai", "pydantic"
+      ],
+      "algorithms": [
+        "Double guardrail: check_input (pré) e check_output (pós); no streaming, output bloqueado emite supressão + done blocked=True tokens=0",
+        "Detecção de gibberish: NFKD→ASCII, plausibilidade de palavras (vogal, sem 6+ consoantes), proporção <34% e repetição de chars",
+        "Captura em cascata: keywords → regex → LLM (completa gaps) → merge → ensure_patient → persist → readiness",
+        "Gemini role coalescing: concatena mensagens consecutivas do mesmo role; separa system instruction",
+        "IMC com 6 categorias (abaixo do peso, eutrófico, sobrepeso, obesidade 1-3)"
+      ],
+      "complexity": "high"
+    },
+    {
+      "name": "rag",
+      "path": "apps/rag",
+      "purpose": "Base de conhecimento com RAG: ingestão de documentos (PDF/MD/TXT), chunking + embeddings OpenAI, ChromaDB local, retrieval com score mínimo e endpoints admin da knowledge base + métricas",
+      "primary_files": [
+        "apps/rag/models.py",
+        "apps/rag/ingestion.py",
+        "apps/rag/vector_store.py",
+        "apps/rag/retriever.py",
+        "apps/rag/views.py",
+        "apps/rag/urls.py",
+        "apps/rag/telemetry_noop.py"
+      ],
+      "functions": [
+        {
+          "name": "upload",
+          "file": "apps/rag/views.py:24",
+          "params": ["request: HttpRequest (MultiPart)"],
+          "returns": "201 {id, title, status, chunk_count}",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "list_documents",
+          "file": "apps/rag/views.py:64",
+          "params": ["request: HttpRequest"],
+          "returns": "list[dict] values(id,title,status,chunk_count,created_at)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "document_status",
+          "file": "apps/rag/views.py:73",
+          "params": ["request: HttpRequest", "doc_id: int"],
+          "returns": "{id, status, chunk_count, error_message}",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "metrics",
+          "file": "apps/rag/views.py:90",
+          "params": ["request: HttpRequest"],
+          "returns": "dict métricas do dia (view em rag/views.py; roteada em apps/audit/urls.py -> /api/v1/admin/metrics/)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "delete_document",
+          "file": "apps/rag/views.py:119",
+          "params": ["request: HttpRequest", "doc_id: int"],
+          "returns": "204 | CONFLICT 409 se PROCESSING",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "ingest",
+          "file": "apps/rag/ingestion.py:38",
+          "params": ["document: KnowledgeDocument", "file_bytes: bytes"],
+          "returns": "None (síncrono; status INDEXED|ERROR)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "get_collection",
+          "file": "apps/rag/vector_store.py:14",
+          "params": [],
+          "returns": "Collection mediclaw_kb (singleton thread-safe)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "search",
+          "file": "apps/rag/retriever.py:19",
+          "params": ["query: str", "k: int = 5", "min_score: float = 0.40"],
+          "returns": "list[dict] {content, source, chunk_id, document_id, score}",
+          "confidence": "confirmed"
+        }
+      ],
+      "entities": [
+        {
+          "name": "KnowledgeDocument",
+          "fields": [
+            { "name": "id", "type": "BigAutoField", "required": true },
+            { "name": "title", "type": "CharField(200)", "required": true },
+            { "name": "file_name", "type": "CharField(255)", "required": true },
+            { "name": "mime_type", "type": "CharField(80)", "required": true },
+            { "name": "status", "type": "CharField(12) PROCESSING|INDEXED|ERROR", "required": true, "default": "PROCESSING" },
+            { "name": "chunk_count", "type": "PositiveIntegerField", "required": false },
+            { "name": "error_message", "type": "TextField", "required": false },
+            { "name": "uploaded_by", "type": "FK -> accounts.User SET_NULL", "required": false },
+            { "name": "created_at", "type": "DateTimeField auto_now_add", "required": true },
+            { "name": "updated_at", "type": "DateTimeField auto_now", "required": true }
+          ],
+          "confidence": "confirmed"
+        }
+      ],
+      "business_rules": [
+        {
+          "description": "Upload valida tipo MIME ∈ {pdf, markdown, plain} e tamanho ≤ 10MB; ingestão síncrona no request",
+          "location": "apps/rag/views.py:16, 30-35; ingestion.py:38",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Chunking RecursiveCharacterTextSplitter 1000/200; embeddings OpenAI; Chroma com score cosseno = max(0, 1 - dist/2)",
+          "location": "apps/rag/ingestion.py:28; retriever.py:40",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Resultados abaixo de min_score são descartados; default 0.40 na função, orquestrador injeta RAG_MIN_SCORE=0.75",
+          "location": "apps/rag/retriever.py:19, 40; orchestrator.py:127",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Delete bloqueia documento em PROCESSING (409 CONFLICT) e remove chunks do Chroma por document_id",
+          "location": "apps/rag/views.py:124-128",
+          "confidence": "confirmed"
+        }
+      ],
+      "dependencies": [
+        "langchain_openai.OpenAIEmbeddings",
+        "langchain_text_splitters.RecursiveCharacterTextSplitter",
+        "pypdf.PdfReader",
+        "chromadb",
+        "apps.common.exceptions.AppError",
+        "apps.common.permissions.IsAdminRole",
+        "apps.common.logging_config",
+        "apps.audit.services.log.record",
+        "apps.accounts.models.User",
+        "apps.conversations.models (Conversation, Message) - métricas"
+      ],
+      "algorithms": [
+        "Ingestão: extração (PDF/pypdf ou utf-8) → validação de texto → chunking 1000/200 → embeddings → Chroma add → status",
+        "Retrieval: embed_query → query L2 → conversão para cosseno → filtro min_score → rank por score",
+        "Singleton thread-safe do Chroma com lock + telemetria desativada (NoopProductTelemetry)"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "name": "audit",
+      "path": "apps/audit",
+      "purpose": "Auditoria e métricas internas: no MVP é um stub (record() = pass) e urls.py é hub de rotas admin (criação de usuário e métricas de outros apps). Sem modelos próprios.",
+      "primary_files": [
+        "apps/audit/services/log.py",
+        "apps/audit/urls.py"
+      ],
+      "functions": [
+        {
+          "name": "record",
+          "file": "apps/audit/services/log.py:1",
+          "params": ["event: str", "user=None (keyword)", "**kwargs"],
+          "returns": "None (stub pass — nada é persistido no MVP)",
+          "confidence": "confirmed"
+        }
+      ],
+      "entities": [],
+      "business_rules": [
+        {
+          "description": "record() é um pass: eventos de auditoria são descartados silenciosamente (expandir no Epic 3)",
+          "location": "apps/audit/services/log.py:3",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Namespace admin centralizado: audit/urls.py roteia admin_create_user (accounts) e metrics (rag)",
+          "location": "apps/audit/urls.py:6-9",
+          "confidence": "confirmed"
+        }
+      ],
+      "dependencies": [
+        "apps.accounts.views.admin_create_user (roteada)",
+        "apps.rag.views.metrics (roteada)",
+        "Chamadores de record: apps.accounts.views, apps.rag.views, apps.ai_engine.orchestrator"
+      ],
+      "algorithms": [],
+      "complexity": "low"
+    },
+    {
+      "name": "common",
+      "path": "apps/common",
+      "purpose": "Infraestrutura transversal: envelope de resposta (renderer + exception handler), middlewares (request ID, user context), permissões customizadas, paginação padrão, logging structlog e health check. Wire global no settings.",
+      "primary_files": [
+        "apps/common/exceptions.py",
+        "apps/common/renderers.py",
+        "apps/common/middleware.py",
+        "apps/common/permissions.py",
+        "apps/common/pagination.py",
+        "apps/common/logging_config.py",
+        "apps/common/views.py",
+        "apps/common/health_urls.py",
+        "apps/common/apps.py"
+      ],
+      "functions": [
+        {
+          "name": "AppError",
+          "file": "apps/common/exceptions.py:5",
+          "params": ["code: str", "message: str", "status_code: int = 400", "details: dict|None"],
+          "returns": "APIException com detail={code, message, details}",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "LLMProviderError",
+          "file": "apps/common/exceptions.py:26",
+          "params": ["message: str"],
+          "returns": "AppError LLM_PROVIDER_ERROR 502",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "envelope_exception_handler",
+          "file": "apps/common/exceptions.py:31",
+          "params": ["exc", "context"],
+          "returns": "Response envelopado {data:null,error,meta} | None",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "EnvelopeJSONRenderer.render",
+          "file": "apps/common/renderers.py:4",
+          "params": ["data", "accepted_media_type", "renderer_context"],
+          "returns": "str JSON {data,error,meta} (sem re-envelope)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "RequestIDMiddleware",
+          "file": "apps/common/middleware.py:15",
+          "params": ["request"],
+          "returns": "response + X-Request-ID; loga latency (sem PII)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "UserContextMiddleware",
+          "file": "apps/common/middleware.py:51",
+          "params": ["request"],
+          "returns": "response (bind user_id no contextvar)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "IsAdminRole.has_permission",
+          "file": "apps/common/permissions.py:4",
+          "params": ["request", "view"],
+          "returns": "bool (autenticado e role==ADMIN)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "IsOwner.has_object_permission",
+          "file": "apps/common/permissions.py:13",
+          "params": ["request", "view", "obj"],
+          "returns": "bool (owner = doctor|user|uploaded_by) - CÓDIGO MORTO",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "health",
+          "file": "apps/common/views.py:19",
+          "params": ["request"],
+          "returns": "{status, db, vector_store, version} 200|503 (AllowAny)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "get_logging_config",
+          "file": "apps/common/logging_config.py:36",
+          "params": ["debug: bool"],
+          "returns": "dict LOGGING do settings (structlog)",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "get_logger",
+          "file": "apps/common/logging_config.py:82",
+          "params": ["name: str"],
+          "returns": "BoundLogger structlog",
+          "confidence": "confirmed"
+        }
+      ],
+      "entities": [],
+      "business_rules": [
+        {
+          "description": "Envelope único: renderer só envolve se data não tem chaves data/error; exception handler usa payload com code ou UNHANDLED",
+          "location": "apps/common/renderers.py:6; exceptions.py:36-43",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "LLMProviderError mapeia para 502 no envelope; GuardrailBlockedError (200) é código morto",
+          "location": "apps/common/exceptions.py:21-28",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Logs sem PII: middleware loga method/path/status/latency e request_id, não conteúdo; user_id via contextvar",
+          "location": "apps/common/middleware.py:25-31, 51-54",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Health degradado (DB ou Chroma) retorna 503 com status degraded; exposto AllowAny fora do /api/v1/",
+          "location": "apps/common/views.py:28-37; config/urls.py:37",
+          "confidence": "confirmed"
+        }
+      ],
+      "dependencies": [
+        "structlog",
+        "rest_framework",
+        "apps.rag.vector_store.get_collection (health)",
+        "django.db.connection (health)",
+        "Consumido por: settings.py (renderer, pagination, exception handler, middleware, logging) e todos os apps"
+      ],
+      "algorithms": [
+        "Envelope de resposta: renderer + exception handler globais com checagem de chaves para evitar duplo envelope",
+        "Structlog bootstrap no ready() do AppConfig; JSONRenderer em prod, ConsoleRenderer em dev; libs ruidosas em WARNING",
+        "Health check: SELECT 1 (Postgres) + Chroma count; overall degradado -> 503"
+      ],
+      "complexity": "low"
+    }
+  ]
+}

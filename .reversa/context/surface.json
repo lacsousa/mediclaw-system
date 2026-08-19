@@ -1,0 +1,79 @@
+{
+  "generated_at": "2026-08-19T13:01:41Z",
+  "project_root": "/mnt/HDATA4/ADATA/2026AI/006-MediClaw",
+  "languages": [
+    { "name": "Python", "extensions": [".py"], "file_count": 110 },
+    { "name": "TypeScript", "extensions": [".ts", ".tsx"], "file_count": 58 },
+    { "name": "Markdown", "extensions": [".md"], "file_count": 71 },
+    { "name": "JSON", "extensions": [".json"], "file_count": 10 },
+    { "name": "HTML", "extensions": [".html"], "file_count": 2 },
+    { "name": "CSS", "extensions": [".css"], "file_count": 1 }
+  ],
+  "primary_language": "Python",
+  "frameworks": [
+    { "name": "Django", "version": "5.2.1", "source": "django-api/pyproject.toml" },
+    { "name": "Django REST Framework", "version": "3.16.0", "source": "django-api/pyproject.toml" },
+    { "name": "djangorestframework-simplejwt", "version": "5.5.0", "source": "django-api/pyproject.toml" },
+    { "name": "LangChain", "version": "0.3.*", "source": "django-api/pyproject.toml" },
+    { "name": "ChromaDB", "version": "0.5.*", "source": "django-api/pyproject.toml" },
+    { "name": "Next.js", "version": "16.2.4", "source": "react-painel/package.json" },
+    { "name": "React", "version": "19.2.4", "source": "react-painel/package.json" },
+    { "name": "Chakra UI", "version": "^3.35.0", "source": "react-painel/package.json" }
+  ],
+  "package_manager": "uv (backend) / npm (frontend)",
+  "entry_points": [
+    { "path": "django-api/manage.py", "type": "cli_entry" },
+    { "path": "django-api/config/urls.py", "type": "router_entry" },
+    { "path": "django-api/config/wsgi.py", "type": "wsgi_entry" },
+    { "path": "django-api/config/asgi.py", "type": "asgi_entry" },
+    { "path": "react-painel/src/app/layout.tsx", "type": "app_entry" },
+    { "path": "marketing/landing/index.html", "type": "static_site" }
+  ],
+  "config_files": [
+    "django-api/config/settings.py",
+    "django-api/.env.example",
+    "django-api/.env.production.example",
+    "react-painel/.example.env.local",
+    "react-painel/next.config.ts",
+    "react-painel/tsconfig.json",
+    "react-painel/eslint.config.mjs",
+    ".env.production.example",
+    "docker-compose.prod.yml",
+    "Makefile"
+  ],
+  "ci_cd": [],
+  "docker": {
+    "dockerfile": "django-api/Dockerfile.prod",
+    "compose": "docker-compose.prod.yml"
+  },
+  "database_hints": [
+    { "path": "django-api/apps/accounts/models.py", "type": "orm_models" },
+    { "path": "django-api/apps/patients/models.py", "type": "orm_models" },
+    { "path": "django-api/apps/health_logs/models.py", "type": "orm_models" },
+    { "path": "django-api/apps/conversations/models.py", "type": "orm_models" },
+    { "path": "django-api/apps/rag/models.py", "type": "orm_models" },
+    { "path": "django-api/apps/*/migrations/", "type": "migrations_dir" }
+  ],
+  "test_framework": "pytest + pytest-django (backend) / Vitest + Testing Library (frontend)",
+  "test_file_count": 19,
+  "modules": [
+    "accounts",
+    "patients",
+    "health_logs",
+    "conversations",
+    "ai_engine",
+    "rag",
+    "audit",
+    "common"
+  ],
+  "total_files": 312,
+  "organization_suggestion": {
+    "granularity": "hybrid",
+    "rationale": "O backend combina roteamento centralizado em config/urls.py (api/v1/...) com apps Django organizados por domínio (apps/accounts, apps/health_logs, etc.) — dois sinais de organização de peso parecido.",
+    "signals": [
+      { "type": "centralized_routing", "evidence": ["django-api/config/urls.py", "django-api/apps/*/urls.py"] },
+      { "type": "top_level_domain_folders", "evidence": ["django-api/apps/accounts/", "django-api/apps/patients/", "django-api/apps/health_logs/", "django-api/apps/conversations/", "django-api/apps/ai_engine/", "django-api/apps/rag/"] }
+    ],
+    "features": []
+  }
+}

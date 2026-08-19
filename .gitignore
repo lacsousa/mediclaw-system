@@ -9,3 +9,6 @@ __pycache__/
 
 # produção (deploy)
 .env.production
+
+# Reversa — configurações pessoais
+.reversa/config.user.toml
