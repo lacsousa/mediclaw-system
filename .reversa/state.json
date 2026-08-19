@@ -139,7 +139,7 @@
     "gaps_generated": "done",
     "confidence_preliminar": "90.3%",
     "status": "aguardando_respostas_usuario",
-    "pending_acao": "usuario pediu commit+push do conteudo reversa (_reversa_sdd/, .reversa/, .agents/, .claude/skills/, AGENTS.md, CLAUDE.md modificado) — interrompido pelo pause antes do commit; verificar secrets e commitar+puxar ao retomar"
+    "pending_acao": "commit+push realizado em 2026-08-19 (4d47154 em origin/main)"
   },
   "redator_progress": {
     "started_at": "2026-08-19T15:35:00Z",
